@@ -108,6 +108,36 @@ process_cursor_move(struct server *server, uint32_t time)
 	dy += server->grab_box.y;
 	resistance_move_apply(view, &dx, &dy);
 	view_move(view, dx, dy);
+
+	if (rc.snap_overlay) {
+		/* Translate cursor into output local coordinates */
+		double cursor_x = server->seat.cursor->x;
+		double cursor_y = server->seat.cursor->y;
+		wlr_output_layout_output_coords(server->output_layout,
+			view->output->wlr_output, &cursor_x, &cursor_y);
+		enum view_edge edge = view_snap_to_edge_get_edge(cursor_x, cursor_y,
+			&view->output->usable_area);
+		if (!edge) {
+			view->overlay.should_draw = false;
+			return;
+		}
+		view->overlay.should_draw = true;
+		if (edge == view->overlay.last_edge
+				&& view->output == view->overlay.last_output) {
+			return;
+		}
+		struct wlr_box box = view_get_edge_snap_box(view, view->output, edge);
+		if (view->ssd.enabled) {
+			struct border border = ssd_thickness(view);
+			box.x -= border.left;
+			box.width += border.left + border.right;
+			box.y -= border.top;
+			box.height += border.top + border.bottom;
+		}
+		memcpy(&view->overlay.box, &box, sizeof(struct wlr_box));
+		view->overlay.last_edge = edge;
+		view->overlay.last_output = view->output;
+	}
 }
 
 static void

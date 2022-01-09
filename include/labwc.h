@@ -210,6 +210,17 @@ struct border {
 	int left;
 };
 
+enum view_edge {
+	VIEW_EDGE_INVALID = 0,
+
+	VIEW_EDGE_LEFT,
+	VIEW_EDGE_RIGHT,
+	VIEW_EDGE_UP,
+	VIEW_EDGE_DOWN,
+	VIEW_EDGE_CENTER,
+	VIEW_EDGE_ALL
+};
+
 struct view {
 	struct server *server;
 	enum view_type type;
@@ -265,6 +276,13 @@ struct view {
 		struct wl_list parts;
 		struct wlr_box box; /* remember geo so we know when to update */
 	} ssd;
+
+	struct {
+		bool should_draw;
+		enum view_edge last_edge;
+		struct output *last_output;
+		struct wlr_box box;
+	} overlay;
 
 	/* The title is unique to each view, so we store these here */
 	struct {
@@ -396,17 +414,6 @@ void view_for_each_surface(struct view *view,
 void view_for_each_popup_surface(struct view *view,
 	wlr_surface_iterator_func_t iterator, void *data);
 void view_discover_output(struct view *view);
-
-enum view_edge {
-	VIEW_EDGE_INVALID = 0,
-
-	VIEW_EDGE_LEFT,
-	VIEW_EDGE_RIGHT,
-	VIEW_EDGE_UP,
-	VIEW_EDGE_DOWN,
-	VIEW_EDGE_CENTER,
-	VIEW_EDGE_ALL
-};
 
 void view_move_to_edge(struct view *view, const char *direction);
 void view_snap_to_edge(struct view *view, const char *direction);

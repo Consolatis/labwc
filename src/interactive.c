@@ -80,6 +80,7 @@ interactive_end(struct view *view)
 			 && rc.snap_edge_range;
 		view->server->input_mode = LAB_INPUT_STATE_PASSTHROUGH;
 		view->server->grabbed_view = NULL;
+		view->overlay.should_draw = false;
 		if (should_snap) {
 			struct wlr_box *area = &view->output->usable_area;
 
