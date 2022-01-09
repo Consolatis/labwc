@@ -466,15 +466,6 @@ view_move_to_edge(struct view *view, const char *direction)
 	view_move(view, x, y);
 }
 
-enum view_edge {
-	VIEW_EDGE_INVALID,
-
-	VIEW_EDGE_LEFT,
-	VIEW_EDGE_RIGHT,
-	VIEW_EDGE_UP,
-	VIEW_EDGE_DOWN,
-	VIEW_EDGE_CENTER,
-};
 
 static enum view_edge
 view_edge_invert(enum view_edge edge)
@@ -513,7 +504,30 @@ view_edge_parse(const char *direction)
 	}
 }
 
-static struct wlr_box
+enum view_edge
+view_snap_to_edge_get_edge(double cursor_output_x, double cursor_output_y, struct wlr_box *usable_area)
+{
+	int snap_range = rc.snap_edge_range;
+	if (!snap_range) {
+		goto invalid;
+	}
+	if (cursor_output_x <= usable_area->x + snap_range) {
+		return VIEW_EDGE_LEFT;
+	}
+	if (cursor_output_x >= usable_area->x + usable_area->width - snap_range) {
+		return VIEW_EDGE_RIGHT;
+	}
+	if (cursor_output_y <= usable_area->y + snap_range) {
+		return rc.snap_top_maximize ? VIEW_EDGE_ALL : VIEW_EDGE_UP;
+	}
+	if (cursor_output_y >= usable_area->y + usable_area->height - snap_range) {
+		return VIEW_EDGE_DOWN;
+	}
+invalid:
+	return VIEW_EDGE_INVALID;
+}
+
+struct wlr_box
 view_get_edge_snap_box(struct view *view, struct output *output,
 		enum view_edge edge)
 {
@@ -543,6 +557,10 @@ view_get_edge_snap_box(struct view *view, struct output *output,
 		base_width = usable.width - 2 * rc.gap;
 		base_height = (usable.height - 3 * rc.gap) / 2;
 		break;
+	case VIEW_EDGE_ALL:
+		base_width = usable.width;
+		base_height = usable.height;
+		break;
 	default:
 	case VIEW_EDGE_CENTER:
 		base_width = usable.width - 2 * rc.gap;
@@ -562,6 +580,17 @@ view_get_edge_snap_box(struct view *view, struct output *output,
 void
 view_snap_to_edge(struct view *view, const char *direction)
 {
+	enum view_edge edge = view_edge_parse(direction);
+	if (edge == VIEW_EDGE_INVALID || edge == VIEW_EDGE_ALL) {
+		wlr_log(WLR_ERROR, "invalid edge");
+		return;
+	}
+	view_snap_to_edge_raw(view, edge);
+}
+
+void
+view_snap_to_edge_raw(struct view *view, enum view_edge edge)
+{
 	if (!view) {
 		wlr_log(WLR_ERROR, "no view");
 		return;
@@ -569,11 +598,6 @@ view_snap_to_edge(struct view *view, const char *direction)
 	struct output *output = view_output(view);
 	if (!output) {
 		wlr_log(WLR_ERROR, "no output");
-		return;
-	}
-	enum view_edge edge = view_edge_parse(direction);
-	if (edge == VIEW_EDGE_INVALID) {
-		wlr_log(WLR_ERROR, "invalid edge");
 		return;
 	}
 

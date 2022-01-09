@@ -384,6 +384,8 @@ entry(xmlNode *node, char *nodename, char *content)
 		rc.snap_edge_range = atoi(content);
 	} else if (!strcasecmp(nodename, "topMaximize.snapping")) {
 		rc.snap_top_maximize = get_bool(content);
+	} else if (!strcasecmp(nodename, "drawOverlay.snapping")) {
+		rc.snap_overlay = get_bool(content);
 	} else if (!strcasecmp(nodename, "cycleViewPreview.core")) {
 		rc.cycle_preview_contents = get_bool(content);
 	}
@@ -484,6 +486,7 @@ rcxml_init()
 	rc.screen_edge_strength = 20;
 	rc.snap_edge_range = 1;
 	rc.snap_top_maximize = true;
+	rc.snap_overlay = true;
 	rc.cycle_preview_contents = false;
 }
 
@@ -613,6 +616,9 @@ post_processing(void)
 		/* So we still allow tap to click by default */
 		struct libinput_category *l = libinput_category_create();
 		l->type = TOUCH_DEVICE;
+	}
+	if (!rc.snap_edge_range) {
+		rc.snap_overlay = false;
 	}
 }
 

@@ -396,8 +396,26 @@ void view_for_each_surface(struct view *view,
 void view_for_each_popup_surface(struct view *view,
 	wlr_surface_iterator_func_t iterator, void *data);
 void view_discover_output(struct view *view);
+
+enum view_edge {
+	VIEW_EDGE_INVALID = 0,
+
+	VIEW_EDGE_LEFT,
+	VIEW_EDGE_RIGHT,
+	VIEW_EDGE_UP,
+	VIEW_EDGE_DOWN,
+	VIEW_EDGE_CENTER,
+	VIEW_EDGE_ALL
+};
+
 void view_move_to_edge(struct view *view, const char *direction);
 void view_snap_to_edge(struct view *view, const char *direction);
+void view_snap_to_edge_raw(struct view *view, enum view_edge edge);
+
+struct wlr_box view_get_edge_snap_box(struct view *view, struct output *output, enum view_edge edge);
+enum view_edge view_snap_to_edge_get_edge(double cursor_output_x, double cursor_output_y, struct wlr_box *usable_area);
+
+
 const char *view_get_string_prop(struct view *view, const char *prop);
 void view_update_title(struct view *view);
 void view_update_app_id(struct view *view);

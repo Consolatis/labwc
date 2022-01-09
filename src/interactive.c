@@ -81,7 +81,6 @@ interactive_end(struct view *view)
 		view->server->input_mode = LAB_INPUT_STATE_PASSTHROUGH;
 		view->server->grabbed_view = NULL;
 		if (should_snap) {
-			int snap_range = rc.snap_edge_range;
 			struct wlr_box *area = &view->output->usable_area;
 
 			/* Translate into output local coordinates */
@@ -90,21 +89,19 @@ interactive_end(struct view *view)
 			wlr_output_layout_output_coords(view->server->output_layout,
 				view->output->wlr_output, &cursor_x, &cursor_y);
 
-			if (cursor_x <= area->x + snap_range) {
-				view_snap_to_edge(view, "left");
-			} else if (cursor_x >= area->x + area->width - snap_range) {
-				view_snap_to_edge(view, "right");
-			} else if (cursor_y <= area->y + snap_range) {
-				if (rc.snap_top_maximize) {
-					view_maximize(view, true);
-					/* When unmaximizing later on restore original position */
-					view->unmaximized_geometry.x = view->server->grab_box.x;
-					view->unmaximized_geometry.y = view->server->grab_box.y;
-				} else {
-					view_snap_to_edge(view, "up");
-				}
-			} else if (cursor_y >= area->y + area->height - snap_range) {
-				view_snap_to_edge(view, "down");
+			enum view_edge edge = view_snap_to_edge_get_edge(cursor_x, cursor_y, area);
+			switch (edge) {
+			case VIEW_EDGE_ALL:
+				view_maximize(view, true);
+				/* When unmaximizing later on restore original position */
+				view->unmaximized_geometry.x = view->server->grab_box.x;
+				view->unmaximized_geometry.y = view->server->grab_box.y;
+				break;
+			case VIEW_EDGE_INVALID:
+				break;
+			default:
+				view_snap_to_edge_raw(view, edge);
+
 			}
 		}
 	}

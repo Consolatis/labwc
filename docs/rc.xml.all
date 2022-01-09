@@ -36,6 +36,7 @@
   <snapping>
     <range>1</range>
     <topMaximize>yes</topMaximize>
+    <drawOverlay>yes</drawOverlay>
   </snapping>
 
   <!--

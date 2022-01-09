@@ -553,6 +553,43 @@ isbutton(enum ssd_part_type type)
 }
 
 static void
+maybe_render_tile_overlay(struct view *view, struct output *output,
+		pixman_region32_t *output_damage)
+{
+	/* Translate cursor into output local coordinates */
+	double cursor_x = view->server->seat.cursor->x;
+	double cursor_y = view->server->seat.cursor->y;
+	wlr_output_layout_output_coords(view->server->output_layout,
+		output->wlr_output, &cursor_x, &cursor_y);
+	enum view_edge edge = view_snap_to_edge_get_edge(cursor_x, cursor_y,
+		&output->usable_area);
+	if (!edge) {
+		return;
+	}
+	struct wlr_box box = view_get_edge_snap_box(
+		view->server->grabbed_view, output, edge);
+	if (view->ssd.enabled) {
+		struct border border = ssd_thickness(view);
+		box.x -= border.left;
+		box.width += border.left + border.right;
+		box.y -= border.top;
+		box.height += border.top + border.bottom;
+	}
+	//float *lightblue = (float[4]) { 0.67, 0.84, 0.90, 0.03 };
+	//float *darkblue = (float[4]) { 0.00, 0.00, 0.55, 0.03 };
+	float *gray;
+	bool use_transparency = true;
+	if (use_transparency) {
+		/* Looks much better but kinda lags on software rendering */
+		gray = (float[4]) { 0.50, 0.50, 0.50, 0.01 };
+	} else {
+		/* Is pretty fast on software rendering */
+		gray = (float[4]) { 0.50, 0.50, 0.50, 1.0 };
+	}
+	render_rect(output, output_damage, &box, gray);
+}
+
+static void
 render_deco(struct view *view, struct output *output,
 		pixman_region32_t *output_damage)
 {
@@ -790,6 +827,11 @@ output_render(struct output *output, pixman_region32_t *damage)
 	wl_list_for_each_reverse (view, &server->views, link) {
 		if (!view->mapped) {
 			continue;
+		}
+		if (view == server->grabbed_view && rc.snap_overlay
+				&& server->input_mode == LAB_INPUT_STATE_MOVE
+				&& view->output == output) {
+			maybe_render_tile_overlay(view, output, damage);
 		}
 		render_deco(view, output, damage);
 		render_view_toplevels(view, output, damage);
