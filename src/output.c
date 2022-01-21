@@ -809,12 +809,12 @@ output_render(struct output *output, pixman_region32_t *damage)
 		if (!view->mapped) {
 			continue;
 		}
-		render_deco(view, output, damage);
-		render_view_toplevels(view, output, damage);
-		render_view_popups(view, output, damage);
 		if (view->overlay.should_draw) {
 			render_tile_overlay(view, output, damage);
 		}
+		render_deco(view, output, damage);
+		render_view_toplevels(view, output, damage);
+		render_view_popups(view, output, damage);
 	}
 
 #if HAVE_XWAYLAND
