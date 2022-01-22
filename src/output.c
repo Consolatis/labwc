@@ -552,22 +552,40 @@ isbutton(enum ssd_part_type type)
 	       type == LAB_SSD_BUTTON_ICONIFY;
 }
 
+
+#define TILE_OVERLAY_BORDER_SIZE 2
 static void
 render_tile_overlay(struct view *view, struct output *output,
 		pixman_region32_t *output_damage)
 {
-	//float *lightblue = (float[4]) { 0.67, 0.84, 0.90, 0.03 };
-	//float *darkblue = (float[4]) { 0.00, 0.00, 0.55, 0.03 };
-	float *gray;
+	/* TODO: use_transparency = !wlr_renderer_is_software(view->server->renderer) */
 	bool use_transparency = true;
 	if (use_transparency) {
 		/* Looks much better but kinda lags on software rendering */
-		gray = (float[4]) { 0.50, 0.50, 0.50, 0.01 };
+		float *blueish = (float[4]) { 0.01, 0.20, 0.39, 0.7 };
+		render_rect(output, output_damage, &view->overlay.box, blueish);
 	} else {
 		/* Is pretty fast on software rendering */
-		gray = (float[4]) { 0.50, 0.50, 0.50, 1.0 };
+		/* Figure out how to correctly draw a border box */
+		float *red = (float[4]) { 1.0, 0.00, 0.00, 1.0 };
+		float *color = red;
+		struct wlr_box box;
+		memcpy(&box, &view->overlay.box, sizeof(struct wlr_box));
+		/* top */
+		box.height = TILE_OVERLAY_BORDER_SIZE;
+		render_rect(output, output_damage, &box, color);
+		/* bottom */
+		box.y += view->overlay.box.height - TILE_OVERLAY_BORDER_SIZE;
+		render_rect(output, output_damage, &box, color);
+		box.height = view->overlay.box.height;
+		box.y = view->overlay.box.y;
+		/* left */
+		box.width = TILE_OVERLAY_BORDER_SIZE;
+		render_rect(output, output_damage, &box, color);
+		/* right */
+		box.x += view->overlay.box.width - TILE_OVERLAY_BORDER_SIZE;
+		render_rect(output, output_damage, &box, color);
 	}
-	render_rect(output, output_damage, &view->overlay.box, gray);
 }
 
 static void
