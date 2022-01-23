@@ -86,6 +86,8 @@ static bool is_modifier_key(xkb_keysym_t sym)
 		   sym == XKB_KEY_Super_R;
 }
 
+static uint32_t last_modifier_sent;
+
 static bool
 handle_compositor_keybindings(struct wl_listener *listener,
 		struct wlr_event_keyboard_key *event)
@@ -101,6 +103,17 @@ handle_compositor_keybindings(struct wl_listener *listener,
 	int nsyms = xkb_state_key_get_syms(device->keyboard->xkb_state, keycode, &syms);
 
 	bool handled = false;
+
+	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
+		for (int i = 0; i < nsyms; i++) {
+			if (is_modifier_key(syms[i])) {
+				/* This will fail on non modifier keybinds */
+				last_modifier_sent = event->keycode;
+				wlr_log(WLR_INFO, "Current key is a modifier: %3u", event->keycode);
+				break;
+			}
+		}
+	}
 
 	wlr_log(WLR_INFO, "Marking keycode %u as pressed", keycode);
 	key_state_set_pressed(keycode,
@@ -178,6 +191,7 @@ handle_compositor_keybindings(struct wl_listener *listener,
 	return handled;
 }
 
+
 static void
 keyboard_key_notify(struct wl_listener *listener, void *data)
 {
@@ -192,24 +206,29 @@ keyboard_key_notify(struct wl_listener *listener, void *data)
 	bool handled = false;
 
 	wlr_log(WLR_INFO, "\nNew key: %3u (%s)",
-		event->keycode + 8,
+		event->keycode,
 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED ? "press" : "release"
 	);
 	/* ignore labwc keybindings if input is inhibited */
 	if (!seat->active_client_while_inhibited) {
 		handled = handle_compositor_keybindings(listener, event);
 	}
-
 	wlr_log(WLR_INFO, "Key %3u (%s) was handled: %u",
-		event->keycode + 8,
+		event->keycode,
 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED ? "press" : "release",
 		handled
 	);
 	if (!handled) {
-		wlr_log(WLR_ERROR, "Key %3u sent to seat", event->keycode + 8);
+		wlr_log(WLR_ERROR, "Key %3u sent to seat", event->keycode);
 		wlr_seat_set_keyboard(wlr_seat, device);
 		wlr_seat_keyboard_notify_key(wlr_seat, event->time_msec,
-					     event->keycode, event->state);
+			event->keycode, event->state);
+	} else if (last_modifier_sent) {
+		wlr_log(WLR_ERROR, "Injecting release event for modifier %3u", last_modifier_sent);
+		wlr_seat_set_keyboard(wlr_seat, device);
+		wlr_seat_keyboard_notify_key(wlr_seat, event->time_msec,
+			last_modifier_sent, WL_KEYBOARD_KEY_STATE_RELEASED);
+		last_modifier_sent = 0;
 	}
 }
 
