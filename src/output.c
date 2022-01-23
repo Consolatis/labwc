@@ -399,18 +399,18 @@ damage_finish:
 
 void
 render_rect_unfilled(struct output *output, pixman_region32_t *output_damage,
-		const struct wlr_box *_box, float color[static 4])
+		const struct wlr_box *_box, float color[static 4], uint32_t strength)
 {
 	struct wlr_box box;
 	memcpy(&box, _box, sizeof(struct wlr_box));
-	box.height = 1;
+	box.height = strength;
 	render_rect(output, output_damage, &box, color);
-	box.y += _box->height - 1;
+	box.y += _box->height - strength;
 	render_rect(output, output_damage, &box, color);
 	memcpy(&box, _box, sizeof(struct wlr_box));
-	box.width = 1;
+	box.width = strength;
 	render_rect(output, output_damage, &box, color);
-	box.x += _box->width - 1;
+	box.x += _box->width - strength;
 	render_rect(output, output_damage, &box, color);
 }
 
@@ -442,14 +442,15 @@ render_cycle_box(struct output *output, pixman_region32_t *output_damage,
 
 	float white[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	float black[4] = { 0.0f, 0.0f, 0.0f, 1.0f };
-	render_rect_unfilled(output, output_damage, &box, white);
+	render_rect_unfilled(output, output_damage, &box, white, 1);
 
 	for (int i = 0; i < 4; i++) {
 		shrink(&box, 1);
-		render_rect_unfilled(output, output_damage, &box, black);
+		render_rect_unfilled(output, output_damage, &box, black, 1);
 	}
+
 	shrink(&box, 1);
-	render_rect_unfilled(output, output_damage, &box, white);
+	render_rect_unfilled(output, output_damage, &box, white, 1);
 }
 
 static void
@@ -553,7 +554,6 @@ isbutton(enum ssd_part_type type)
 }
 
 
-#define TILE_OVERLAY_BORDER_SIZE 2
 static void
 render_tile_overlay(struct view *view, struct output *output,
 		pixman_region32_t *output_damage)
@@ -565,26 +565,28 @@ render_tile_overlay(struct view *view, struct output *output,
 		float *blueish = (float[4]) { 0.01, 0.20, 0.39, 0.7 };
 		render_rect(output, output_damage, &view->overlay.box, blueish);
 	} else {
-		/* Is pretty fast on software rendering */
-		/* Figure out how to correctly draw a border box */
-		float *red = (float[4]) { 1.0, 0.00, 0.00, 1.0 };
-		float *color = red;
+		//float *red = (float[4]) { 1.0, 0.00, 0.00, 1.0 };
+		//float *blue = (float[4]) { 0.0, 0.00, 1.00, 1.0 };
+		float *whiteish = (float[4]) { 0.80, 0.80, 0.80, 1.0 };
+		float *grayish = (float[4]) { 0.50, 0.50, 0.50, 1.0 };
+		float *blackish = (float[4]) { 0.20, 0.20, 0.20, 1.0 };
+		float *outer = blackish;
+		float *outer_inner = grayish;
+		float *inner = whiteish;
 		struct wlr_box box;
 		memcpy(&box, &view->overlay.box, sizeof(struct wlr_box));
-		/* top */
-		box.height = TILE_OVERLAY_BORDER_SIZE;
-		render_rect(output, output_damage, &box, color);
-		/* bottom */
-		box.y += view->overlay.box.height - TILE_OVERLAY_BORDER_SIZE;
-		render_rect(output, output_damage, &box, color);
-		box.height = view->overlay.box.height;
-		box.y = view->overlay.box.y;
-		/* left */
-		box.width = TILE_OVERLAY_BORDER_SIZE;
-		render_rect(output, output_damage, &box, color);
-		/* right */
-		box.x += view->overlay.box.width - TILE_OVERLAY_BORDER_SIZE;
-		render_rect(output, output_damage, &box, color);
+
+		render_rect_unfilled(output, output_damage, &box, outer, 1);
+		shrink(&box, 2);
+		render_rect_unfilled(output, output_damage, &box, outer_inner, 2);
+
+		shrink(&box, 1);
+		render_rect_unfilled(output, output_damage, &box, inner, 1);
+
+		shrink(&box, 2);
+		render_rect_unfilled(output, output_damage, &box, outer_inner, 2);
+		shrink(&box, 1);
+		render_rect_unfilled(output, output_damage, &box, outer, 1);
 	}
 }
 
