@@ -24,7 +24,8 @@ main(int argc, char *argv[])
 {
 	char *startup_cmd = NULL;
 	char *config_file = NULL;
-	enum wlr_log_importance verbosity = WLR_ERROR;
+	//enum wlr_log_importance verbosity = WLR_ERROR;
+	enum wlr_log_importance verbosity = WLR_DEBUG;
 
 	int c;
 	while ((c = getopt(argc, argv, "c:dhs:vV")) != -1) {

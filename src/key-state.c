@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include "labwc.h"
 
 #define MAX_PRESSED_KEYS (16)
 
@@ -15,6 +16,7 @@ static struct key_array pressed, bound;
 static void
 remove_key(struct key_array *array, uint32_t keycode)
 {
+	wlr_log(WLR_DEBUG, "Key %3u (%c) removed", keycode, keycode);
 	bool shifting = false;
 
 	for (int i = 0; i < MAX_PRESSED_KEYS; ++i) {
@@ -32,6 +34,7 @@ remove_key(struct key_array *array, uint32_t keycode)
 static void
 add_key(struct key_array *array, uint32_t keycode)
 {
+	wlr_log(WLR_DEBUG, "Key %3u (%c) added", keycode, keycode);
 	array->keys[array->nr_keys++] = keycode;
 }
 
@@ -48,6 +51,7 @@ key_state_set_pressed(uint32_t keycode, bool ispressed)
 void
 key_state_store_pressed_keys_as_bound(void)
 {
+	wlr_log(WLR_DEBUG, "Storing pressed as bound");
 	memcpy(bound.keys, pressed.keys, MAX_PRESSED_KEYS * sizeof(uint32_t));
 	bound.nr_keys = pressed.nr_keys;
 }
@@ -60,11 +64,13 @@ key_state_corresponding_press_event_was_bound(uint32_t keycode)
 			return true;
 		}
 	}
+	wlr_log(WLR_DEBUG, "Key %3u (%c) was bound", keycode);
 	return false;
 }
 
 void
 key_state_bound_key_remove(uint32_t keycode)
 {
+	wlr_log(WLR_DEBUG, "Key %3u (%c) removed from bound", keycode);
 	remove_key(&bound, keycode);
 }

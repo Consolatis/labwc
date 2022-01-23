@@ -102,6 +102,7 @@ handle_compositor_keybindings(struct wl_listener *listener,
 
 	bool handled = false;
 
+	wlr_log(WLR_INFO, "Marking keycode %u as pressed", keycode);
 	key_state_set_pressed(keycode,
 		event->state == WL_KEYBOARD_KEY_STATE_PRESSED);
 
@@ -111,6 +112,8 @@ handle_compositor_keybindings(struct wl_listener *listener,
 	 */
 	if (key_state_corresponding_press_event_was_bound(keycode)
 			&& event->state == WL_KEYBOARD_KEY_STATE_RELEASED) {
+		wlr_log(WLR_INFO, "Not sending release event for keycode %d", keycode);
+		wlr_log(WLR_INFO, "Removing keycode %u from bound_keys", keycode);
 		key_state_bound_key_remove(keycode);
 		return true;
 	}
@@ -168,6 +171,7 @@ handle_compositor_keybindings(struct wl_listener *listener,
 	}
 
 	if (handled) {
+		wlr_log(WLR_INFO, "Adding keycode %u to bound_keys", keycode);
 		key_state_store_pressed_keys_as_bound();
 	}
 
@@ -187,12 +191,22 @@ keyboard_key_notify(struct wl_listener *listener, void *data)
 
 	bool handled = false;
 
+	wlr_log(WLR_INFO, "\nNew key: %3u (%s)",
+		event->keycode + 8,
+		event->state == WL_KEYBOARD_KEY_STATE_PRESSED ? "press" : "release"
+	);
 	/* ignore labwc keybindings if input is inhibited */
 	if (!seat->active_client_while_inhibited) {
 		handled = handle_compositor_keybindings(listener, event);
 	}
 
+	wlr_log(WLR_INFO, "Key %3u (%s) was handled: %u",
+		event->keycode + 8,
+		event->state == WL_KEYBOARD_KEY_STATE_PRESSED ? "press" : "release",
+		handled
+	);
 	if (!handled) {
+		wlr_log(WLR_ERROR, "Key %3u sent to seat", event->keycode + 8);
 		wlr_seat_set_keyboard(wlr_seat, device);
 		wlr_seat_keyboard_notify_key(wlr_seat, event->time_msec,
 					     event->keycode, event->state);
