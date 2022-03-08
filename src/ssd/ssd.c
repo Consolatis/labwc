@@ -163,7 +163,6 @@ ssd_create(struct view *view)
 void
 ssd_update_geometry(struct view *view)
 {
-	/* TODO: verify we are not called without reason. like in commit handlers */
 	if (!view->ssd.tree || !view->scene_node) {
 		return;
 	}
@@ -171,19 +170,30 @@ ssd_update_geometry(struct view *view)
 	if (view->ssd.enabled && !view->ssd.tree->node.state.enabled) {
 		wlr_scene_node_set_enabled(&view->ssd.tree->node, true);
 	}
-	if (!view->ssd.enabled && view->ssd.tree->node.state.enabled) {
-		wlr_scene_node_set_enabled(&view->ssd.tree->node, false);
+
+	if (!view->ssd.enabled) {
+		if (view->ssd.tree->node.state.enabled) {
+			wlr_scene_node_set_enabled(&view->ssd.tree->node, false);
+		}
+		return;
 	}
 
 	int width = view->w;
 	int height = view->h;
 	if (width == view->ssd.state.width && height == view->ssd.state.height) {
+		if (view->x != view->ssd.state.x || view->y != view->ssd.state.y) {
+			ssd_extents_maybe_hide_areas(view);
+			view->ssd.state.x = view->x;
+			view->ssd.state.y = view->y;
+		}
 		return;
 	}
 	ssd_extents_update(view);
 	ssd_border_update(view);
 	ssd_titlebar_update(view);
 
+	view->ssd.state.x = view->x;
+	view->ssd.state.y = view->y;
 	view->ssd.state.width = width;
 	view->ssd.state.height = height;
 }

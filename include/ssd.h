@@ -7,8 +7,8 @@
 
 #define SSD_HEIGHT 26    /* TODO: use theme->title_height */
 #define BUTTON_COUNT 4
-#define BUTTON_WIDTH 26
-#define EXTENDED_AREA 8
+#define BUTTON_WIDTH 26  /* TODO: maybe use theme */
+#define EXTENDED_AREA 8  /* TODO: maybe use theme */
 
 #define FOR_EACH(tmp, ...) \
 { \
@@ -65,6 +65,15 @@ struct ssd_state_title_width {
 	bool truncated;
 };
 
+enum ssd_extent_hide_state {
+	LAB_SSD_EXTENT_HIDE_STATE_NONE   = 0,
+	LAB_SSD_EXTENT_HIDE_STATE_TOP    = 1 << 0,
+	LAB_SSD_EXTENT_HIDE_STATE_BOTTOM = 1 << 1,
+	LAB_SSD_EXTENT_HIDE_STATE_LEFT   = 1 << 2,
+	LAB_SSD_EXTENT_HIDE_STATE_RIGHT  = 1 << 3,
+	LAB_SSD_EXTENT_HIDE_STATE_ALL    = (1 << 4) - 1,
+};
+
 struct ssd {
 	bool enabled;
 	struct wlr_scene_tree *tree;
@@ -75,6 +84,8 @@ struct ssd {
 	 * don't update things we don't have to.
 	 */
 	struct {
+		int x;
+		int y;
 		int width;
 		int height;
 		struct ssd_state_title {
@@ -82,6 +93,7 @@ struct ssd {
 			struct ssd_state_title_width active;
 			struct ssd_state_title_width inactive;
 		} title;
+		enum ssd_extent_hide_state extents_hidden;
 	} state;
 
 	/* An invisble area around the view which allows resizing */
@@ -177,6 +189,7 @@ void ssd_border_destroy(struct view *view);
 void ssd_extents_create(struct view *view);
 void ssd_extents_update(struct view *view);
 void ssd_extents_destroy(struct view *view);
+bool ssd_extents_maybe_hide_areas(struct view *view);
 
 /* TODO: clean up / update */
 struct border ssd_thickness(struct view *view);
