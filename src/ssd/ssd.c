@@ -12,6 +12,7 @@
 #include "labwc.h"
 #include "theme.h"
 #include "ssd.h"
+#include "node.h"
 
 struct border
 ssd_thickness(struct view *view)
@@ -52,6 +53,8 @@ enum ssd_part_type
 ssd_get_part_type(struct view *view, struct wlr_scene_node *node)
 {
 	if (!node) {
+		return LAB_SSD_ROOT;
+	} else if (!view) {
 		return LAB_SSD_NONE;
 	} else if (node->type == WLR_SCENE_NODE_SURFACE) {
 		return LAB_SSD_CLIENT;
@@ -157,6 +160,7 @@ ssd_create(struct view *view)
 	ssd_extents_create(view);
 	ssd_border_create(view);
 	ssd_titlebar_create(view);
+	node_descriptor_create(&view->ssd.tree->node, LAB_NODE_DESC_SSD, view);
 }
 
 void
@@ -299,4 +303,30 @@ ssd_set_active(struct view *view)
 	}
 	_ssd_set_active(&view->ssd, true);
 	view->server->ssd_focused_view = view;
+}
+
+void
+ssd_process_cursor_motion(struct server *server, struct view *view,
+		struct wlr_scene_node *node)
+{
+	/* SSD button mouse-over */
+	struct ssd_hover_state *hover = &server->ssd_hover_state;
+	enum ssd_part_type view_area = ssd_get_part_type(view, node);
+	if (ssd_is_button(view_area)) {
+		/* Cursor entered new button area */
+		if (hover->view != view || hover->type != view_area) {
+			if (hover->node) {
+				wlr_scene_node_set_enabled(hover->node, false);
+			}
+			hover->view = view;
+			hover->type = view_area;
+			hover->node = ssd_button_hover_enable(view, view_area);
+		}
+	} else if (hover->node) {
+		/* Cursor left button area */
+		wlr_scene_node_set_enabled(hover->node, false);
+		hover->view = NULL;
+		hover->type = LAB_SSD_NONE;
+		hover->node = NULL;
+	}
 }

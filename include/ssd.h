@@ -50,6 +50,7 @@ enum ssd_part_type {
 
 /* Forward declare arguments */
 struct view;
+struct server;
 struct wl_list;
 struct wlr_box;
 struct wlr_scene_tree;
@@ -132,6 +133,8 @@ void ssd_update_title(struct view *view);
 void ssd_update_geometry(struct view *view);
 void ssd_reload(struct view *view);
 void ssd_destroy(struct view *view);
+void ssd_process_cursor_motion(struct server *server, struct view *view,
+	struct wlr_scene_node *node);
 /* Returns hover overlay node so it can be disabled later on */
 struct wlr_scene_node *ssd_button_hover_enable(
 	struct view *view, enum ssd_part_type type);

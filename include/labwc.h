@@ -100,7 +100,7 @@ struct seat {
 	 * This allows to keep dragging a scrollbar or selecting text even
 	 * when moving outside of the window.
 	 */
-	struct {
+	struct seat_pressed {
 		struct view *view;
 		struct wlr_surface *surface;
 	} pressed;

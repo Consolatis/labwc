@@ -546,7 +546,7 @@ menu_open(struct menu *menu, int x, int y)
 void
 menu_process_cursor_motion(struct wlr_scene_node *node)
 {
-	assert(node && node->data);
+	assert(node);
 	struct menuitem *item = node_menuitem_from_node(node);
 
 	if (node == item->selected.background) {

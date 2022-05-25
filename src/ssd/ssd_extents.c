@@ -9,7 +9,8 @@ static struct ssd_part *
 add_extent(struct wl_list *part_list, enum ssd_part_type type,
 		struct wlr_scene_node *parent)
 {
-	float invisible[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	//float invisible[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	float invisible[4] = { 0.0f, 0.3f, 0.0f, 0.3f };
 	struct ssd_part *part = add_scene_part(part_list, type);
 	/*
 	 * Extents need additional geometry to enable dynamic
