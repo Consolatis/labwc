@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
 #include <assert.h>
+#include "buffer.h"
 #include "labwc.h"
-#include "ssd.h"
+#include "private/ssd.h"
 
 struct ssd_part *
 add_scene_part(struct wl_list *part_list, enum ssd_part_type type)

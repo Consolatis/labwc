@@ -7,12 +7,12 @@
  */
 
 #include <assert.h>
-#include "config/rcxml.h"
 #include "common/font.h"
-#include "labwc.h"
-#include "theme.h"
-#include "ssd.h"
 #include "common/scene-helpers.h"
+#include "config/rcxml.h"
+#include "labwc.h"
+#include "private/ssd.h"
+#include "theme.h"
 
 struct border
 ssd_thickness(struct view *view)

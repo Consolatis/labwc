@@ -3,11 +3,12 @@
 #define _POSIX_C_SOURCE 200809L
 #include <assert.h>
 #include <string.h>
-#include "labwc.h"
-#include "ssd.h"
-#include "theme.h"
+#include "buffer.h"
 #include "common/font.h"
 #include "common/scene-helpers.h"
+#include "labwc.h"
+#include "private/ssd.h"
+#include "theme.h"
 
 #define FOR_EACH_STATE(view, tmp) FOR_EACH(tmp, \
 	&(view)->ssd.titlebar.active, \

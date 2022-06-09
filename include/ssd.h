@@ -2,20 +2,8 @@
 #ifndef __LABWC_SSD_H
 #define __LABWC_SSD_H
 
-#include "buffer.h"
-#include <wlr/util/box.h>
-
-#define BUTTON_COUNT 4
+/* TODO: Move to theme->ssd_button_width */
 #define BUTTON_WIDTH 26
-#define EXTENDED_AREA 8
-
-#define FOR_EACH(tmp, ...) \
-{ \
-	__typeof__(tmp) _x[] = { __VA_ARGS__, NULL }; \
-	size_t _i = 0; \
-	for ((tmp) = _x[_i]; _i < sizeof(_x) / sizeof(_x[0]) - 1; (tmp) = _x[++_i])
-
-#define FOR_EACH_END }
 
 /*
  * Sequence these according to the order they should be processed for
@@ -52,6 +40,7 @@ enum ssd_part_type {
 struct view;
 struct wl_list;
 struct wlr_box;
+struct wlr_scene_node;
 struct wlr_scene_tree;
 
 struct ssd_sub_tree {
@@ -90,32 +79,15 @@ struct ssd {
 
 	/* The top of the view, containing buttons, title, .. */
 	struct {
-		/* struct wlr_scene_tree *tree;      unused for now */
 		struct ssd_sub_tree active;
 		struct ssd_sub_tree inactive;
 	} titlebar;
 
 	/* Borders allow resizing as well */
 	struct {
-		/* struct wlr_scene_tree *tree;      unused for now */
 		struct ssd_sub_tree active;
 		struct ssd_sub_tree inactive;
 	} border;
-};
-
-struct ssd_part {
-	enum ssd_part_type type;
-
-	/* Buffer pointer. May be NULL */
-	struct lab_data_buffer *buffer;
-
-	/* This part represented in scene graph */
-	struct wlr_scene_node *node;
-
-	/* Targeted geometry. May be NULL */
-	struct wlr_box *geometry;
-
-	struct wl_list link;
 };
 
 struct ssd_hover_state {
@@ -137,52 +109,13 @@ struct wlr_scene_node *ssd_button_hover_enable(
 	struct view *view, enum ssd_part_type type);
 
 /* Public SSD helpers */
+/* TODO: clean up / move / update */
 enum ssd_part_type ssd_at(struct view *view, double lx, double ly);
 enum ssd_part_type ssd_get_part_type(
 	struct view *view, struct wlr_scene_node *node);
 uint32_t ssd_resize_edges(enum ssd_part_type type);
 bool ssd_is_button(enum ssd_part_type type);
 bool ssd_part_contains(enum ssd_part_type whole, enum ssd_part_type candidate);
-
-/* SSD internal helpers to create various SSD elements */
-/* TODO: Replace some common args with a struct */
-struct ssd_part *add_scene_part(
-	struct wl_list *part_list, enum ssd_part_type type);
-struct ssd_part *add_scene_rect(
-	struct wl_list *list, enum ssd_part_type type,
-	struct wlr_scene_tree *parent, int width, int height, int x, int y,
-	float color[4]);
-struct ssd_part *add_scene_buffer(
-	struct wl_list *list, enum ssd_part_type type,
-	struct wlr_scene_tree *parent, struct wlr_buffer *buffer, int x, int y);
-struct ssd_part *add_scene_button(
-	struct wl_list *part_list, enum ssd_part_type type,
-	struct wlr_scene_tree *parent, float *bg_color,
-	struct wlr_buffer *icon_buffer, int x);
-struct ssd_part *add_scene_button_corner(
-	struct wl_list *part_list, enum ssd_part_type type,
-	struct wlr_scene_tree *parent, struct wlr_buffer *corner_buffer,
-	struct wlr_buffer *icon_buffer, int x);
-
-/* SSD internal helpers */
-struct ssd_part *ssd_get_part(
-	struct wl_list *part_list, enum ssd_part_type type);
-void ssd_destroy_parts(struct wl_list *list);
-
-/* SSD internal */
-void ssd_titlebar_create(struct view *view);
-void ssd_titlebar_update(struct view *view);
-void ssd_titlebar_destroy(struct view *view);
-
-void ssd_border_create(struct view *view);
-void ssd_border_update(struct view *view);
-void ssd_border_destroy(struct view *view);
-
-void ssd_extents_create(struct view *view);
-void ssd_extents_update(struct view *view);
-void ssd_extents_destroy(struct view *view);
-
-/* TODO: clean up / update */
 struct border ssd_thickness(struct view *view);
 struct wlr_box ssd_max_extents(struct view *view);
 

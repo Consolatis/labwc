@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-2.0-only
 
-#include "labwc.h"
-#include "ssd.h"
-#include "theme.h"
 #include "common/scene-helpers.h"
+#include "labwc.h"
+#include "private/ssd.h"
+#include "theme.h"
 
 #define FOR_EACH_STATE(view, tmp) FOR_EACH(tmp, \
 	&(view)->ssd.border.active, \

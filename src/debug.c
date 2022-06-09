@@ -2,9 +2,10 @@
 #include <wlr/types/wlr_layer_shell_v1.h>
 #include <wlr/types/wlr_scene.h>
 #include "buffer.h"
+#include "common/scene-helpers.h"
 #include "labwc.h"
 #include "node.h"
-#include "common/scene-helpers.h"
+#include "ssd.h"
 
 #define HEADER_CHARS "------------------------------"
 
