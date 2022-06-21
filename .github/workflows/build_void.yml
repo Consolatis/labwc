@@ -6,13 +6,18 @@ jobs:
   build:
     strategy:
       matrix:
-        - name: arch
-          os: ubuntu-latest
-          container: archlinux:base-devel
+        name: [
+          arch,
+          void
+        ]
+        include:
+          - name: arch
+            os: ubuntu-latest
+            container: archlinux:base-devel
 
-        - name: void
-          os: ubuntu-latest
-          container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
+          - name: void
+            os: ubuntu-latest
+            container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
 
     runs-on: ${{ matrix.os }}
     container: ${{ matrix.container }}
