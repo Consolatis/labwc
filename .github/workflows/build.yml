@@ -1,4 +1,10 @@
+# TODO: add FreeBSD via https://github.com/marketplace/actions/freebsd-vm
+#
+# Void-musl images:
 # https://github.com/void-linux/void-docker/pkgs/container/void-linux/versions
+#
+# Void dependencies based on:
+# https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
 
 name: CI_foo
 on: [push, pull_request]
@@ -7,15 +13,15 @@ jobs:
     strategy:
       matrix:
         name: [
-          arch,
-          void
+          Arch,
+          Void
         ]
         include:
-          - name: arch
+          - name: Arch
             os: ubuntu-latest
             container: archlinux:base-devel
 
-          - name: void
+          - name: Void
             os: ubuntu-latest
             container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
 
@@ -24,15 +30,21 @@ jobs:
     steps:
       - uses: actions/checkout@v1
 
+      - name: Install Arch Linux dependencies
+        if: matrix.name == 'Arch'
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git meson clang wlroots libdrm libinput \
+            wayland-protocols cairo pango libxml2 xorg-xwayland
+
       - name: Install Void Linux dependencies
-        if: matrix.name == 'void'
+        if: matrix.name == 'Void'
         run: |
           # TODO: switch mirror to repo-ci.voidlinux.org once available:
           # https://github.com/void-linux/void-packages/blob/master/common/travis/set_mirror.sh
           xbps-install -Syu || xbps-install -yu xbps
           xbps-install -yu
-          # Based on
-          # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
           xbps-install -y git meson gcc clang pkg-config wlroots \
             wayland-devel glslang libgbm-devel libglvnd-devel libseat-devel \
             eudev-libudev-devel libdrm-devel libinput-devel libxkbcommon-devel \
@@ -40,14 +52,6 @@ jobs:
             xcb-util-wm-devel xcb-util-renderutil-devel libxcb-devel \
             xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel \
             xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland
-
-      - name: Install Arch Linux dependencies
-        if: matrix.name == 'arch'
-        run: |
-          pacman-key --init
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm git meson clang wlroots libdrm libinput \
-            wayland-protocols cairo pango libxml2 xorg-xwayland
 
       - name: build with gcc
         run: |
