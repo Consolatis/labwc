@@ -42,6 +42,7 @@ jobs:
       - name: Install Void Linux dependencies
         if: matrix.name == 'Void'
         run: |
+          false
           # TODO: switch mirror to repo-ci.voidlinux.org once available:
           # https://github.com/void-linux/void-packages/blob/master/common/travis/set_mirror.sh
           xbps-install -Syu || xbps-install -yu xbps
