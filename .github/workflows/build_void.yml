@@ -9,8 +9,15 @@ jobs:
         run: |
           xbps-install -Syu || xbps-install -yu xbps
           xbps-install -yu
-          # Just install wlroots to get all the required deps installed as well
-          xbps-install -y git meson gcc pkgconf wlroots
+          # Based on
+          # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
+          xbps-install -y git meson gcc pkg-config wlroots \
+            wayland-devel glslang libgbm-devel libglvnd-devel libseat-devel \
+            eudev-libudev-devel libdrm-devel libinput-devel libxkbcommon-devel \
+            pixman-devel wayland-devel wayland-protocols xcb-util-errors-devel \
+            xcb-util-wm-devel xcb-util-renderutil-devel libxcb-devel \
+            xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel \
+            xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland
       - uses: actions/checkout@v1
       - name: build with gcc
         run: |
