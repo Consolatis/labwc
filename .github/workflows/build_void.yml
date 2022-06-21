@@ -10,7 +10,7 @@ jobs:
           xbps-install -Syu || xbps-install -yu xbps
           xbps-install -yu
           #xbps-install -y git gcc clang
-          xbps-install -y meson
+          xbps-install -y meson gcc
       - uses: actions/checkout@v1
       - name: build with gcc
         run: |
