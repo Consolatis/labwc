@@ -20,7 +20,7 @@ jobs:
       - uses: actions/checkout@v1
 
       - name: Install Void Linux dependencies
-      - if: matrix.name == 'void'
+        if: matrix.name == 'void'
         run: |
           # TODO: switch mirror to repo-ci.voidlinux.org once available:
           # https://github.com/void-linux/void-packages/blob/master/common/travis/set_mirror.sh
@@ -37,7 +37,7 @@ jobs:
             xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland
 
       - name: Install Arch Linux dependencies
-      - if: ${{ matrix.name == 'arch' }}
+        if: matrix.name == 'arch'
         run: |
           pacman-key --init
           pacman -Syu --noconfirm
