@@ -1,0 +1,24 @@
+name: CI
+on: [push, pull_request]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
+    steps:
+      - name: install dependencies
+        run: |
+          xbps-install -Syu || xbps-install -yu xbps
+          xbps-install -yu
+          xbps-install -y git gcc clang
+      - uses: actions/checkout@v2
+      - name: build with gcc
+        run: |
+          export CC=gcc
+          meson build-gcc/ --werror
+          ninja -C build-gcc/
+      - name: build with clang
+        run: |
+          export CC=clang
+          meson build-clang/ --werror
+          ninja -C build-clang/
+
