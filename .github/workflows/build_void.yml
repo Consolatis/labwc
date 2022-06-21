@@ -10,7 +10,7 @@ jobs:
           xbps-install -Syu || xbps-install -yu xbps
           xbps-install -yu
           # Just install wlroots to get all the required deps installed as well
-          xbps-install -y git meson gcc wlroots
+          xbps-install -y git meson gcc pkgconf wlroots
       - uses: actions/checkout@v1
       - name: build with gcc
         run: |
