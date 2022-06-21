@@ -6,7 +6,7 @@
 # Void dependencies based on:
 # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
 
-name: CI_foo
+name: Compile test
 on: [push, pull_request]
 jobs:
   build:
@@ -15,19 +15,22 @@ jobs:
       matrix:
         name: [
           Arch,
-          Void
+          Void-musl
         ]
         include:
           - name: Arch
             os: ubuntu-latest
             container: archlinux:base-devel
 
-          - name: Void
+          - name: Void-musl
             os: ubuntu-latest
             container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
 
     runs-on: ${{ matrix.os }}
+
+    if: matrix.container
     container: ${{ matrix.container }}
+
     steps:
       - uses: actions/checkout@v1
 
@@ -40,9 +43,8 @@ jobs:
             wayland-protocols cairo pango libxml2 xorg-xwayland
 
       - name: Install Void Linux dependencies
-        if: matrix.name == 'Void'
+        if: matrix.name == 'Void-musl'
         run: |
-          false
           # TODO: switch mirror to repo-ci.voidlinux.org once available:
           # https://github.com/void-linux/void-packages/blob/master/common/travis/set_mirror.sh
           xbps-install -Syu || xbps-install -yu xbps
@@ -55,15 +57,15 @@ jobs:
             xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel \
             xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland
 
-      - name: build with gcc
+      - name: Build with gcc
         run: |
           export CC=gcc
           meson build-gcc/ --werror
-          ninja -C build-gcc/
+          meson compile -C build-gcc/
 
-      - name: build with clang
+      - name: Build with clang
         run: |
           export CC=clang
           meson build-clang/ --werror
-          ninja -C build-clang/
+          meson compile -C build-clang/
 
