@@ -1,12 +1,29 @@
-name: CI_void
+# https://github.com/void-linux/void-docker/pkgs/container/void-linux/versions
+
+name: CI_foo
 on: [push, pull_request]
 jobs:
   build:
-    runs-on: ubuntu-latest
-    container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
+    strategy:
+      matrix:
+        - name: arch
+          os: ubuntu-latest
+          container: archlinux:base-devel
+
+        - name: void
+          os: ubuntu-latest
+          container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
+
+    runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     steps:
-      - name: install dependencies
+      - uses: actions/checkout@v1
+
+      - name: Install Void Linux dependencies
+      - if: matrix.name == 'void':
         run: |
+          # TODO: switch mirror to repo-ci.voidlinux.org once available:
+          # https://github.com/void-linux/void-packages/blob/master/common/travis/set_mirror.sh
           xbps-install -Syu || xbps-install -yu xbps
           xbps-install -yu
           # Based on
@@ -18,12 +35,21 @@ jobs:
             xcb-util-wm-devel xcb-util-renderutil-devel libxcb-devel \
             xcb-util-cursor-devel xcb-util-devel xcb-util-image-devel \
             xcb-util-keysyms-devel xcb-util-xrm-devel xorg-server-xwayland
-      - uses: actions/checkout@v1
+
+      - name: Install Arch Linux dependencies
+      - if: matrix.name == 'arch':
+        run: |
+          pacman-key --init
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git meson clang wlroots libdrm libinput \
+            wayland-protocols cairo pango libxml2 xorg-xwayland
+
       - name: build with gcc
         run: |
           export CC=gcc
           meson build-gcc/ --werror
           ninja -C build-gcc/
+
       - name: build with clang
         run: |
           export CC=clang
