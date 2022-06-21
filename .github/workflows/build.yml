@@ -6,10 +6,11 @@
 # Void dependencies based on:
 # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
 
-name: Compile test
+name: Compile
 on: [pull_request]
 jobs:
   build:
+    name:
     strategy:
       fail-fast: false
       matrix:
