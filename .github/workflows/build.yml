@@ -11,6 +11,7 @@ on: [push, pull_request]
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         name: [
           Arch,
