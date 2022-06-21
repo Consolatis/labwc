@@ -11,7 +11,7 @@ jobs:
           xbps-install -yu
           # Based on
           # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
-          xbps-install -y git meson gcc pkg-config wlroots \
+          xbps-install -y git meson gcc clang pkg-config wlroots \
             wayland-devel glslang libgbm-devel libglvnd-devel libseat-devel \
             eudev-libudev-devel libdrm-devel libinput-devel libxkbcommon-devel \
             pixman-devel wayland-devel wayland-protocols xcb-util-errors-devel \
