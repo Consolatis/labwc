@@ -7,7 +7,7 @@
 # https://github.com/void-linux/void-packages/blob/master/srcpkgs/wlroots/template
 
 name: Compile test
-on: [push, pull_request]
+on: [pull_request]
 jobs:
   build:
     strategy:
@@ -27,8 +27,6 @@ jobs:
             container: ghcr.io/void-linux/void-linux:latest-thin-x86_64-musl
 
     runs-on: ${{ matrix.os }}
-
-    if: ${{ matrix.container }}
     container: ${{ matrix.container }}
 
     steps:
