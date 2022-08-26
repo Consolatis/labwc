@@ -408,7 +408,7 @@ struct xwayland_unmanaged *xwayland_unmanaged_create(struct server *server,
 void unmanaged_handle_map(struct wl_listener *listener, void *data);
 #endif
 
-void view_set_activated(struct view *view, bool activated);
+void view_set_activated(struct view *view);
 void view_close(struct view *view);
 
 /**
