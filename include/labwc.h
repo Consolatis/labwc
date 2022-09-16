@@ -117,7 +117,7 @@ struct seat {
 		struct wlr_scene_node *node;
 		struct wlr_surface *surface;
 		struct wlr_surface *toplevel;
-		uint32_t resize_edges;
+		enum wlr_edges resize_edges;
 	} pressed;
 
 	struct wl_client *active_client_while_inhibited;
@@ -196,7 +196,7 @@ struct server {
 	struct view *grabbed_view;
 	double grab_x, grab_y;
 	struct wlr_box grab_box;
-	uint32_t resize_edges;
+	enum wlr_edges resize_edges;
 
 	/* SSD state */
 	struct view *focused_view;
@@ -515,11 +515,11 @@ void seat_focus_surface(struct seat *seat, struct wlr_surface *surface);
 void seat_set_focus_layer(struct seat *seat, struct wlr_layer_surface_v1 *layer);
 void seat_set_pressed(struct seat *seat, struct view *view,
 	struct wlr_scene_node *node, struct wlr_surface *surface,
-	struct wlr_surface *toplevel, uint32_t resize_edges);
+	struct wlr_surface *toplevel, enum wlr_edges resize_edges);
 void seat_reset_pressed(struct seat *seat);
 
 void interactive_begin(struct view *view, enum input_mode mode,
-		      uint32_t edges);
+	enum wlr_edges edges);
 void interactive_end(struct view *view);
 
 void output_init(struct server *server);

@@ -384,7 +384,7 @@ pressed_surface_destroy(struct wl_listener *listener, void *data)
 void
 seat_set_pressed(struct seat *seat, struct view *view,
 	struct wlr_scene_node *node, struct wlr_surface *surface,
-	struct wlr_surface *toplevel, uint32_t resize_edges)
+	struct wlr_surface *toplevel, enum wlr_edges resize_edges)
 {
 	assert(view || surface);
 	seat_reset_pressed(seat);
@@ -413,5 +413,5 @@ seat_reset_pressed(struct seat *seat)
 	seat->pressed.node = NULL;
 	seat->pressed.surface = NULL;
 	seat->pressed.toplevel = NULL;
-	seat->pressed.resize_edges = 0;
+	seat->pressed.resize_edges = WLR_EDGE_NONE;
 }

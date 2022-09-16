@@ -112,7 +112,7 @@ handle_request_move(struct wl_listener *listener, void *data)
 	 * want.
 	 */
 	struct view *view = wl_container_of(listener, view, request_move);
-	interactive_begin(view, LAB_INPUT_STATE_MOVE, 0);
+	interactive_begin(view, LAB_INPUT_STATE_MOVE, WLR_EDGE_NONE);
 }
 
 static void

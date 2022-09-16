@@ -167,7 +167,7 @@ show_menu(struct server *server, struct view *view, const char *menu_name)
 
 static struct view *
 view_for_action(struct view *activator, struct server *server,
-	struct action *action, uint32_t *resize_edges)
+	struct action *action, enum wlr_edges *resize_edges)
 {
 	/* View is explicitly specified for mousebinds */
 	if (activator) {
@@ -194,7 +194,7 @@ view_for_action(struct view *activator, struct server *server,
 
 void
 actions_run(struct view *activator, struct server *server,
-	struct wl_list *actions, uint32_t resize_edges)
+	struct wl_list *actions, enum wlr_edges resize_edges)
 {
 	if (!actions) {
 		wlr_log(WLR_ERROR, "empty actions");
@@ -308,7 +308,7 @@ actions_run(struct view *activator, struct server *server,
 			break;
 		case ACTION_TYPE_MOVE:
 			if (view) {
-				interactive_begin(view, LAB_INPUT_STATE_MOVE, 0);
+				interactive_begin(view, LAB_INPUT_STATE_MOVE, WLR_EDGE_NONE);
 			}
 			break;
 		case ACTION_TYPE_RAISE:

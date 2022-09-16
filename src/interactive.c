@@ -15,7 +15,7 @@ max_move_scale(double pos_cursor, double pos_current,
 }
 
 void
-interactive_begin(struct view *view, enum input_mode mode, uint32_t edges)
+interactive_begin(struct view *view, enum input_mode mode, enum wlr_edges edges)
 {
 	if (mode == LAB_INPUT_STATE_MOVE && view->fullscreen) {
 		/**

@@ -146,7 +146,7 @@ void ssd_update_button_hover(struct wlr_scene_node *node,
 enum ssd_part_type ssd_at(struct view *view, double lx, double ly);
 enum ssd_part_type ssd_get_part_type(
 	struct view *view, struct wlr_scene_node *node);
-uint32_t ssd_resize_edges(enum ssd_part_type type);
+enum wlr_edges ssd_resize_edges(enum ssd_part_type type);
 bool ssd_is_button(enum ssd_part_type type);
 bool ssd_part_contains(enum ssd_part_type whole, enum ssd_part_type candidate);
 

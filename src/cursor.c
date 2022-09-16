@@ -55,9 +55,13 @@ static_assert(
 #undef ARRAY_SIZE
 
 enum lab_cursors
-cursor_get_from_edge(uint32_t resize_edges)
+cursor_get_from_edge(enum wlr_edges resize_edges)
 {
-	switch (resize_edges) {
+	/*
+	 * Cast to uint32_t here because the combined
+	 * edges are not technically part of the enum
+	 */
+	switch ((uint32_t)resize_edges) {
 	case WLR_EDGE_NONE:
 		return LAB_CURSOR_DEFAULT;
 	case WLR_EDGE_TOP | WLR_EDGE_LEFT:
@@ -86,7 +90,7 @@ cursor_get_from_edge(uint32_t resize_edges)
 static enum lab_cursors
 cursor_get_from_ssd(enum ssd_part_type view_area)
 {
-	uint32_t resize_edges = ssd_resize_edges(view_area);
+	enum wlr_edges resize_edges = ssd_resize_edges(view_area);
 	return cursor_get_from_edge(resize_edges);
 }
 
@@ -401,10 +405,10 @@ cursor_update_common(struct server *server, struct cursor_context *ctx,
 	}
 }
 
-uint32_t
+enum wlr_edges
 cursor_get_resize_edges(struct wlr_cursor *cursor, struct cursor_context *ctx)
 {
-	uint32_t resize_edges = ssd_resize_edges(ctx->type);
+	enum wlr_edges resize_edges = ssd_resize_edges(ctx->type);
 	if (ctx->view && !resize_edges) {
 		resize_edges |=
 			(int)cursor->x < ctx->view->x + ctx->view->w / 2 ?
@@ -698,8 +702,7 @@ handle_release_mousebinding(struct server *server,
 			}
 			activated_any = true;
 			activated_any_frame |= mousebind->context == LAB_SSD_FRAME;
-			actions_run(ctx->view, server, &mousebind->actions,
-				/*resize_edges*/ 0);
+			actions_run(ctx->view, server, &mousebind->actions, WLR_EDGE_NONE);
 		}
 	}
 	/*
@@ -745,7 +748,7 @@ is_double_click(long double_click_speed, uint32_t button, struct view *view)
 
 static bool
 handle_press_mousebinding(struct server *server, struct cursor_context *ctx,
-		uint32_t button, uint32_t resize_edges)
+		uint32_t button, enum wlr_edges resize_edges)
 {
 	struct mousebind *mousebind;
 	bool double_click = is_double_click(rc.doubleclick_time, button, ctx->view);
@@ -806,7 +809,7 @@ cursor_button_press(struct seat *seat, struct wlr_pointer_button_event *event)
 	struct cursor_context ctx = get_cursor_context(server);
 
 	/* Determine closest resize edges in case action is Resize */
-	uint32_t resize_edges = cursor_get_resize_edges(seat->cursor, &ctx);
+	enum wlr_edges resize_edges = cursor_get_resize_edges(seat->cursor, &ctx);
 
 	if (ctx.view || ctx.surface) {
 		/* Store resize edges for later action processing */

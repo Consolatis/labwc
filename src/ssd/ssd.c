@@ -120,7 +120,7 @@ ssd_at(struct view *view, double lx, double ly)
 	return ssd_get_part_type(view, node);
 }
 
-uint32_t
+enum wlr_edges
 ssd_resize_edges(enum ssd_part_type type)
 {
 	switch (type) {
@@ -141,9 +141,8 @@ ssd_resize_edges(enum ssd_part_type type)
 	case LAB_SSD_PART_CORNER_BOTTOM_LEFT:
 		return WLR_EDGE_BOTTOM | WLR_EDGE_LEFT;
 	default:
-		break;
+		return WLR_EDGE_NONE;
 	}
-	return 0;
 }
 
 void
