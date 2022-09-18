@@ -154,7 +154,7 @@ _osd_update(struct server *server)
 static void
 add_workspace(struct server *server, const char *name)
 {
-	struct workspace *workspace = znew_for(workspace);
+	struct workspace *workspace = znew_for(*workspace);
 	workspace->server = server;
 	workspace->name = xstrdup(name);
 	workspace->tree = wlr_scene_tree_create(server->view_tree);

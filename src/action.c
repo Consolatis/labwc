@@ -105,7 +105,7 @@ action_create(const char *action_name)
 		wlr_log(WLR_ERROR, "action name not specified");
 		return NULL;
 	}
-	struct action *action = znew_for(action);
+	struct action *action = znew_for(*action);
 	action->type = action_type_from_str(action_name);
 	wl_list_init(&action->args);
 	return action;
@@ -372,7 +372,7 @@ void
 action_arg_add_str(struct action *action, char *key, const char *value)
 {
 	assert(value && "Tried to add NULL action string argument");
-	struct action_arg_str *arg = znew_for(arg);
+	struct action_arg_str *arg = znew_for(*arg);
 	arg->base.type = LAB_ACTION_ARG_STR;
 	if (key) {
 		arg->base.key = xstrdup(key);

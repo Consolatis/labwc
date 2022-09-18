@@ -109,7 +109,7 @@ mousebind_create(const char *context)
 		wlr_log(WLR_ERROR, "mousebind context not specified");
 		return NULL;
 	}
-	struct mousebind *m = znew_for(m);
+	struct mousebind *m = znew_for(*m);
 	m->context = context_from_str(context);
 	if (m->context != LAB_SSD_NONE) {
 		wl_list_insert(rc.mousebinds.prev, &m->link);

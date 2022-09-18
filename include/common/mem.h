@@ -27,7 +27,7 @@ void *xzalloc(size_t size);
  *   In C23 "typeof" will be standard. Until then, __typeof__ works
  *   with both GCC and clang (do we care about other compilers?)
  */
-#define znew_for(ptr)  ((__typeof__(ptr))xzalloc(sizeof(*(ptr))))
+#define znew_for(ptr)  ((__typeof__(&ptr))xzalloc(sizeof(ptr)))
 
 /*
  * As defined in FreeBSD.

@@ -140,7 +140,7 @@ struct xwayland_unmanaged *
 xwayland_unmanaged_create(struct server *server,
 			  struct wlr_xwayland_surface *xsurface)
 {
-	struct xwayland_unmanaged *unmanaged = znew_for(unmanaged);
+	struct xwayland_unmanaged *unmanaged = znew_for(*unmanaged);
 	unmanaged->server = server;
 	unmanaged->xwayland_surface = xsurface;
 

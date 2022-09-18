@@ -68,7 +68,7 @@ xdg_popup_create(struct view *view, struct wlr_xdg_popup *wlr_popup)
 		return;
 	}
 
-	struct xdg_popup *popup = znew_for(popup);
+	struct xdg_popup *popup = znew_for(*popup);
 	popup->parent_view = view;
 	popup->wlr_popup = wlr_popup;
 

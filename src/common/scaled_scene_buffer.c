@@ -68,7 +68,7 @@ _update_buffer(struct scaled_scene_buffer *self, double scale)
 
 	/* Create or reuse cache entry */
 	if (wl_list_length(&self->cache) < LAB_SCALED_BUFFER_MAX_CACHE) {
-		cache_entry = znew_for(cache_entry);
+		cache_entry = znew_for(*cache_entry);
 	} else {
 		cache_entry = wl_container_of(self->cache.prev, cache_entry, link);
 		if (cache_entry->buffer) {
@@ -151,7 +151,7 @@ scaled_scene_buffer_create(struct wlr_scene_tree *parent,
 	assert(impl);
 	assert(impl->create_buffer);
 
-	struct scaled_scene_buffer *self = znew_for(self);
+	struct scaled_scene_buffer *self = znew_for(*self);
 	self->scene_buffer = wlr_scene_buffer_create(parent, NULL);
 	if (!self->scene_buffer) {
 		wlr_log(WLR_ERROR, "Failed to create scene buffer");
