@@ -318,7 +318,7 @@ output_config_apply(struct server *server,
 		}
 
 		if (output_enabled) {
-			wlr_output_layout_move(server->output_layout, o,
+			wlr_output_layout_add(server->output_layout, o,
 				head->state.x, head->state.y);
 		}
 
