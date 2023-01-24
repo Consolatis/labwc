@@ -19,6 +19,8 @@
 #include "labwc.h"
 #include "node.h"
 
+#define LAB_LAYERSHELL_VERSION 4
+
 static void
 arrange_one_layer(struct output *output, const struct wlr_box *full_area,
 		struct wlr_box *usable_area, struct wlr_scene_tree *tree,
@@ -388,7 +390,8 @@ handle_new_layer_surface(struct wl_listener *listener, void *data)
 void
 layers_init(struct server *server)
 {
-	server->layer_shell = wlr_layer_shell_v1_create(server->wl_display);
+	server->layer_shell = wlr_layer_shell_v1_create(server->wl_display,
+		LAB_LAYERSHELL_VERSION);
 	server->new_layer_surface.notify = handle_new_layer_surface;
 	wl_signal_add(&server->layer_shell->events.new_surface,
 		&server->new_layer_surface);
