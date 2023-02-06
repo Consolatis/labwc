@@ -12,13 +12,17 @@ enum mako_binding_action {
 	MAKO_BINDING_DISMISS,
 	MAKO_BINDING_DISMISS_GROUP,
 	MAKO_BINDING_DISMISS_ALL,
+	MAKO_BINDING_INVOKE_ACTION,
 	MAKO_BINDING_INVOKE_DEFAULT_ACTION,
 	MAKO_BINDING_EXEC,
 };
 
 struct mako_binding {
 	enum mako_binding_action action;
-	char *command; // for MAKO_BINDING_EXEC
+	union {
+		char *command;     // for MAKO_BINDING_EXEC
+		char *action_name; // for MAKO_BINDING_ACTION
+	};
 };
 
 enum mako_sort_criteria {

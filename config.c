@@ -647,6 +647,9 @@ static bool apply_style_option(struct mako_style *style, const char *name,
 			binding.action = MAKO_BINDING_DISMISS_GROUP;
 		} else if (strcmp(value, "invoke-default-action") == 0) {
 			binding.action = MAKO_BINDING_INVOKE_DEFAULT_ACTION;
+		} else if (has_prefix(value, "invoke-action ")) {
+			binding.action = MAKO_BINDING_INVOKE_ACTION;
+			binding.action_name = strdup(value + strlen("invoke-action "));
 		} else if (has_prefix(value, "exec ")) {
 			binding.action = MAKO_BINDING_EXEC;
 			binding.command = strdup(value + strlen("exec "));
