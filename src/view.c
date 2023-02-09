@@ -669,7 +669,10 @@ view_set_decorations(struct view *view, bool decorations)
 		} else {
 			undecorate(view);
 		}
-		view_apply_special_geometry(view);
+		if (view->mapped) {
+			/* We may need to update maximized / tiled geometry */
+			view_apply_special_geometry(view);
+		}
 	}
 }
 
