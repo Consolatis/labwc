@@ -4,6 +4,8 @@ labwc-actions(5)
 
 labwc - actions
 
+test foo bar
+
 # ACTIONS
 
 Actions are used in menus and keyboard/mouse bindings.
