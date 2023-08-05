@@ -38,9 +38,13 @@ Actions are used in menus and keyboard/mouse bindings.
 *<action name="Move" />*
 	Begin interactive move of window under cursor
 
-*<action name="MoveToEdge" direction="value" />*
-	Move window to edge of outputs. Understands directions "left", "up",
-	"right" and "down".
+*<action name="MoveToEdge" direction="value" snap="value" />*
+	Move window until it hits the next edge.
+
+	*direction* [left|up|right|down] Direction in which to move.
+
+	*snap* [window|screen] Move window until it hits an edge of
+	another window, or screen edge. Default window.
 
 *<action name="Resize" />*
 	Begin interactive resize of window under cursor
