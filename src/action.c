@@ -179,6 +179,11 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 		}
 		break;
 	case ACTION_TYPE_MOVE_TO_EDGE:
+		if (!strcmp(argument, "snap")) {
+			action_arg_add_str(action, argument, content);
+			goto cleanup;
+		}
+		/* Falls through */
 	case ACTION_TYPE_SNAP_TO_EDGE:
 		if (!strcmp(argument, "direction")) {
 			enum view_edge edge = view_edge_parse(content);
@@ -576,7 +581,9 @@ actions_run(struct view *activator, struct server *server,
 			if (view) {
 				/* Config parsing makes sure that direction is a valid direction */
 				enum view_edge edge = get_arg_value_int(action, "direction", 0);
-				view_move_to_edge(view, edge);
+				const char *snap = get_arg_value_str(action, "snap", "window");
+				bool ignore_windows = !!strcasecmp(snap, "window");
+				view_move_to_edge(view, edge, ignore_windows);
 			}
 			break;
 		case ACTION_TYPE_SNAP_TO_EDGE:
