@@ -14,8 +14,6 @@
 #include "workspaces.h"
 #include "xwayland.h"
 
-#define LAB_MIN_VIEW_WIDTH  100
-#define LAB_MIN_VIEW_HEIGHT  60
 #define LAB_FALLBACK_WIDTH  640
 #define LAB_FALLBACK_HEIGHT 480
 
