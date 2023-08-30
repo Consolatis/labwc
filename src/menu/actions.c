@@ -4,6 +4,7 @@
 #include "menu.h"
 #include "node.h"
 
+/* Internal helpers */
 static int
 menu_get_full_width(struct menu *menu)
 {
@@ -140,21 +141,6 @@ menu_close(struct menu *menu)
 	}
 }
 
-void
-menu_open(struct menu *menu, int x, int y)
-{
-	assert(menu);
-	if (menu->server->menu_current) {
-		menu_close(menu->server->menu_current);
-	}
-	close_all_submenus(menu);
-	menu_set_selection(menu, NULL);
-	menu_configure(menu, x, y, LAB_MENU_OPEN_AUTO);
-	wlr_scene_node_set_enabled(&menu->scene_tree->node, true);
-	menu->server->menu_current = menu;
-	menu->server->input_mode = LAB_INPUT_STATE_MENU;
-}
-
 static void
 menu_process_item_selection(struct menuitem *item)
 {
@@ -255,6 +241,33 @@ menu_execute_item(struct menuitem *item)
 	return true;
 }
 
+/* Public API */
+void
+menu_open(struct menu *menu, int x, int y)
+{
+	assert(menu);
+	if (menu->server->menu_current) {
+		menu_close(menu->server->menu_current);
+	}
+	close_all_submenus(menu);
+	menu_set_selection(menu, NULL);
+	menu_configure(menu, x, y, LAB_MENU_OPEN_AUTO);
+	wlr_scene_node_set_enabled(&menu->scene_tree->node, true);
+	menu->server->menu_current = menu;
+	menu->server->input_mode = LAB_INPUT_STATE_MENU;
+}
+
+void
+menu_close_root(struct server *server)
+{
+	assert(server->input_mode == LAB_INPUT_STATE_MENU);
+	if (server->menu_current) {
+		menu_close(server->menu_current);
+		server->menu_current = NULL;
+	}
+	server->input_mode = LAB_INPUT_STATE_PASSTHROUGH;
+}
+
 /* Keyboard based selection */
 void
 menu_item_select_next(struct server *server)
@@ -279,10 +292,10 @@ menu_call_selected_actions(struct server *server)
 	return menu_execute_item(menu->selection.item);
 }
 
-/* Selects the first item on the submenu attached to the current selection */
 void
 menu_submenu_enter(struct server *server)
 {
+	/* Selects the first item on the submenu attached to the current selection */
 	struct menu *menu = get_selection_leaf(server);
 	if (!menu || !menu->selection.menu) {
 		return;
@@ -302,10 +315,10 @@ menu_submenu_enter(struct server *server)
 	menu_process_item_selection(item);
 }
 
-/* Re-selects the selected item on the parent menu of the current selection */
 void
 menu_submenu_leave(struct server *server)
 {
+	/* Re-selects the selected item on the parent menu of the current selection */
 	struct menu *menu = get_selection_leaf(server);
 	if (!menu || !menu->parent || !menu->parent->selection.item) {
 		return;
@@ -336,15 +349,4 @@ menu_call_actions(struct wlr_scene_node *node)
 	struct menuitem *item = node_menuitem_from_node(node);
 
 	return menu_execute_item(item);
-}
-
-void
-menu_close_root(struct server *server)
-{
-	assert(server->input_mode == LAB_INPUT_STATE_MENU);
-	if (server->menu_current) {
-		menu_close(server->menu_current);
-		server->menu_current = NULL;
-	}
-	server->input_mode = LAB_INPUT_STATE_PASSTHROUGH;
 }
