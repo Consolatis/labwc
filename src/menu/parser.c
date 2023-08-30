@@ -21,7 +21,7 @@
 #include "common/scene-helpers.h"
 #include "common/string-helpers.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "node.h"
 #include "theme.h"
 

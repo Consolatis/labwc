@@ -13,7 +13,7 @@
 #include "dnd.h"
 #include "idle.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "regions.h"
 #include "resistance.h"
 #include "ssd.h"

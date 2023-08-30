@@ -22,7 +22,7 @@
 #include "idle.h"
 #include "labwc.h"
 #include "layers.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "regions.h"
 #include "resize_indicator.h"
 #include "theme.h"

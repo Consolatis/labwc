@@ -6,7 +6,7 @@
 #include "idle.h"
 #include "key-state.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "regions.h"
 #include "view.h"
 #include "workspaces.h"

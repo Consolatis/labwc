@@ -14,7 +14,7 @@
 #include "common/string-helpers.h"
 #include "debug.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "regions.h"
 #include "ssd.h"
 #include "view.h"

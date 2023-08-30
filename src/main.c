@@ -10,8 +10,8 @@
 #include "common/spawn.h"
 #include "config/session.h"
 #include "labwc.h"
+#include "menu.h"
 #include "theme.h"
-#include "menu/menu.h"
 
 struct rcxml rc = { 0 };
 

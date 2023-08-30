@@ -1,7 +1,7 @@
 #include <assert.h>
 #include "action.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "node.h"
 
 static int

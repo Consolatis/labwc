@@ -5,7 +5,7 @@
 #include "common/mem.h"
 #include "common/scene-helpers.h"
 #include "labwc.h"
-#include "menu/menu.h"
+#include "menu.h"
 #include "regions.h"
 #include "resize_indicator.h"
 #include "ssd.h"
