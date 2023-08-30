@@ -2,6 +2,7 @@
 #ifndef LABWC_MENU_H
 #define LABWC_MENU_H
 
+#include <stdbool.h>
 #include <wayland-server.h>
 
 /* forward declare arguments */
