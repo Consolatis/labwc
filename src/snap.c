@@ -101,14 +101,8 @@ _snap_next_edge(struct view *view, int start_pos, const struct snap_search def, 
 	struct server *server = output->server;
 	struct view *v;
 	int p = max;
-	struct wlr_scene_tree *current_workspace_tree = view->server->workspace_current->tree;
-	wl_list_for_each(v, &server->views, link) {
+	for_each_view(v, &server->views, LAB_VIEW_CRITERIA_CURRENT_WORKSPACE) {
 		if (v == view || v->output != output || v->minimized || v->maximized) {
-			continue;
-		}
-		/* not part of the current workspace, and not part of the always-on-top tree */
-		if (v->scene_tree->node.parent != current_workspace_tree &&
-				!view_is_always_on_top(v)) {
 			continue;
 		}
 
