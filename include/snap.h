@@ -2,11 +2,10 @@
 #ifndef LABWC_SNAP_H
 #define LABWC_SNAP_H
 
-#include "config.h"
-#include <stdint.h>
-#include <wayland-util.h>
-#include <wlr/util/box.h>
+#include "common/border.h"
 #include "view.h"
+
+struct wlr_box;
 
 struct border snap_get_max_distance(struct view *view);
 

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <assert.h>
 #include <strings.h>
+#include <wlr/util/box.h>
 #include "labwc.h"
 #include "workspaces.h"
 #include "view.h"
