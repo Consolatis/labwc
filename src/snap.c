@@ -3,9 +3,9 @@
 #include <strings.h>
 #include <wlr/util/box.h>
 #include "labwc.h"
-#include "workspaces.h"
-#include "view.h"
 #include "snap.h"
+#include "view.h"
+#include "workspaces.h"
 
 /* We cannot use MIN/MAX macros, as they may call functions twice, and
  * can be overridden by previous #define.
