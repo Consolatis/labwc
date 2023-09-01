@@ -963,7 +963,7 @@ view_on_output_destroy(struct view *view)
 }
 
 void
-view_move_to_edge(struct view *view, enum view_edge direction, bool ignore_windows)
+view_move_to_edge(struct view *view, enum view_edge direction, bool snap_to_windows)
 {
 	assert(view);
 	if (!output_is_usable(view->output)) {
@@ -972,7 +972,9 @@ view_move_to_edge(struct view *view, enum view_edge direction, bool ignore_windo
 	}
 
 	int dx = 0, dy = 0;
-	if (ignore_windows) {
+	if (snap_to_windows) {
+		snap_vector_to_next_edge(view, direction, &dx, &dy);
+	} else {
 		struct border distance = snap_get_max_distance(view);
 		switch (direction) {
 		case VIEW_EDGE_LEFT:
@@ -990,8 +992,6 @@ view_move_to_edge(struct view *view, enum view_edge direction, bool ignore_windo
 		default:
 			return;
 		}
-	} else {
-		snap_vector_to_next_edge(view, direction, &dx, &dy);
 	}
 
 	view_move(view, view->pending.x + dx, view->pending.y + dy);
