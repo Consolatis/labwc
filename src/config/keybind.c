@@ -48,16 +48,16 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 {
 	struct keybind *keybind;
 	const xkb_keysym_t *syms;
-	struct xkb_state *state = data;
-	int nr_syms = xkb_state_key_get_syms(state, key, &syms);
+	xkb_layout_index_t layout = *(int *)data;
+	int nr_syms = xkb_keymap_key_get_syms_by_level(keymap, key, layout, 0, &syms);
 	if (!nr_syms) {
 		return;
 	}
 	for (int i = 0; i < nr_syms; i++) {
 		xkb_keysym_t sym = syms[i];
 		wl_list_for_each(keybind, &rc.keybinds, link) {
-			for (size_t k = 0; k < keybind->keysyms_len; k++) {
-				if (sym != keybind->keysyms[k]) {
+			for (size_t j = 0; j < keybind->keysyms_len; j++) {
+				if (sym != keybind->keysyms[j]) {
 					continue;
 				}
 				/* Found keycode for sym */
@@ -67,6 +67,17 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 						keybind->keycodes_len);
 					break;
 				}
+				bool keycode_exists = false;
+				for (size_t k = 0; k < keybind->keycodes_len; k++) {
+					if (keybind->keycodes[k] == key) {
+						keycode_exists = true;
+						break;
+					}
+				}
+				if (keycode_exists) {
+					continue;
+				}
+				wlr_log(WLR_INFO, "Adding keycode 0x%x\t for sym 0x%x", key, sym);
 				keybind->keycodes[keybind->keycodes_len++] = key;
 			}
 		}
@@ -83,7 +94,11 @@ keybind_update_keycodes(struct server *server)
 	wl_list_for_each(keybind, &rc.keybinds, link) {
 		keybind->keycodes_len = 0;
 	}
-	xkb_keymap_key_for_each(keymap, update_keycodes_iter, state);
+	xkb_layout_index_t layouts = xkb_keymap_num_layouts(keymap);
+	for (xkb_layout_index_t i = 0; i < layouts; i++) {
+		wlr_log(WLR_ERROR, "Found layout %s", xkb_keymap_layout_get_name(keymap, i));
+		xkb_keymap_key_for_each(keymap, update_keycodes_iter, &i);
+	}
 }
 
 struct keybind *
