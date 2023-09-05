@@ -104,6 +104,7 @@ keybind_update_keycodes(struct server *server)
 struct keybind *
 keybind_create(const char *keybind)
 {
+	xkb_keysym_t sym;
 	struct keybind *k = znew(*k);
 	xkb_keysym_t keysyms[MAX_KEYSYMS];
 	gchar **symnames = g_strsplit(keybind, "-", -1);
@@ -113,9 +114,14 @@ keybind_create(const char *keybind)
 		if (modifier != 0) {
 			k->modifiers |= modifier;
 		} else {
-			xkb_keysym_t sym = xkb_keysym_to_lower(
-				xkb_keysym_from_name(symname,
-					XKB_KEYSYM_CASE_INSENSITIVE));
+			sym = xkb_keysym_from_name(symname, XKB_KEYSYM_CASE_INSENSITIVE);
+			if (sym == XKB_KEY_NoSymbol && g_utf8_strlen(symname, -1) == 1) {
+				gunichar codepoint = g_utf8_get_char_validated(symname, -1);
+				if (codepoint != (gunichar)-1) {
+					sym = xkb_utf32_to_keysym(codepoint);
+				}
+			}
+			sym = xkb_keysym_to_lower(sym);
 			if (sym == XKB_KEY_NoSymbol) {
 				wlr_log(WLR_ERROR, "unknown keybind (%s)", symname);
 				free(k);
