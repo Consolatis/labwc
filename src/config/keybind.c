@@ -10,6 +10,7 @@
 #include "common/mem.h"
 #include "config/keybind.h"
 #include "config/rcxml.h"
+#include "labwc.h"
 
 uint32_t
 parse_modifier(const char *symname)
@@ -40,6 +41,49 @@ keybind_the_same(struct keybind *a, struct keybind *b)
 		}
 	}
 	return true;
+}
+
+static void
+update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
+{
+	struct keybind *keybind;
+	const xkb_keysym_t *syms;
+	struct xkb_state *state = data;
+	int nr_syms = xkb_state_key_get_syms(state, key, &syms);
+	if (!nr_syms) {
+		return;
+	}
+	for (int i = 0; i < nr_syms; i++) {
+		xkb_keysym_t sym = syms[i];
+		wl_list_for_each(keybind, &rc.keybinds, link) {
+			for (size_t k = 0; k < keybind->keysyms_len; k++) {
+				if (sym != keybind->keysyms[k]) {
+					continue;
+				}
+				/* Found keycode for sym */
+				if (keybind->keycodes_len == MAX_KEYCODES) {
+					wlr_log(WLR_ERROR,
+						"Already stored %lu keycodes for keybind",
+						keybind->keycodes_len);
+					break;
+				}
+				keybind->keycodes[keybind->keycodes_len++] = key;
+			}
+		}
+	}
+}
+
+void
+keybind_update_keycodes(struct server *server)
+{
+	struct xkb_state *state = server->seat.keyboard_group->keyboard.xkb_state;
+	struct xkb_keymap *keymap = xkb_state_get_keymap(state);
+
+	struct keybind *keybind;
+	wl_list_for_each(keybind, &rc.keybinds, link) {
+		keybind->keycodes_len = 0;
+	}
+	xkb_keymap_key_for_each(keymap, update_keycodes_iter, state);
 }
 
 struct keybind *

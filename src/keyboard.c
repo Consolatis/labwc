@@ -86,7 +86,7 @@ keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 }
 
 static bool
-handle_keybinding(struct server *server, uint32_t modifiers, xkb_keysym_t sym)
+handle_keybinding(struct server *server, uint32_t modifiers, xkb_keysym_t sym, xkb_keycode_t code)
 {
 	struct keybind *keybind;
 	wl_list_for_each(keybind, &rc.keybinds, link) {
@@ -98,11 +98,23 @@ handle_keybinding(struct server *server, uint32_t modifiers, xkb_keysym_t sym)
 				&& !actions_contain_toggle_keybinds(&keybind->actions)) {
 			continue;
 		}
-		for (size_t i = 0; i < keybind->keysyms_len; i++) {
-			if (xkb_keysym_to_lower(sym) == keybind->keysyms[i]) {
-				key_state_store_pressed_keys_as_bound();
-				actions_run(NULL, server, &keybind->actions, 0);
-				return true;
+		if (sym == XKB_KEY_NoSymbol) {
+			/* Use keycodes */
+			for (size_t i = 0; i < keybind->keycodes_len; i++) {
+				if (keybind->keycodes[i] == code) {
+					key_state_store_pressed_keys_as_bound();
+					actions_run(NULL, server, &keybind->actions, 0);
+					return true;
+				}
+			}
+		} else {
+			/* Use syms */
+			for (size_t i = 0; i < keybind->keysyms_len; i++) {
+				if (xkb_keysym_to_lower(sym) == keybind->keysyms[i]) {
+					key_state_store_pressed_keys_as_bound();
+					actions_run(NULL, server, &keybind->actions, 0);
+					return true;
+				}
 			}
 		}
 	}
@@ -303,14 +315,29 @@ handle_compositor_keybindings(struct keyboard *keyboard,
 
 	/* Handle compositor key bindings */
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-		for (int i = 0; i < translated.nr_syms; i++) {
-			handled |= handle_keybinding(server, modifiers, translated.syms[i]);
-		}
+
+		/* First try keycodes */
+		handled |= handle_keybinding(server, modifiers, XKB_KEY_NoSymbol, keycode);
 		if (handled) {
+			wlr_log(WLR_ERROR, "keycodes matched");
 			goto out;
 		}
+
+		/* Then fall back to keysyms */
+		for (int i = 0; i < translated.nr_syms; i++) {
+			handled |= handle_keybinding(server, modifiers, translated.syms[i], keycode);
+		}
+		if (handled) {
+			wlr_log(WLR_ERROR, "translated keysyms matched");
+			goto out;
+		}
+
+		/* And finally test for keysyms without modifier */
 		for (int i = 0; i < raw.nr_syms; i++) {
-			handled |= handle_keybinding(server, modifiers, raw.syms[i]);
+			handled |= handle_keybinding(server, modifiers, raw.syms[i], keycode);
+		}
+		if (handled) {
+			wlr_log(WLR_ERROR, "raw keysyms matched");
 		}
 	}
 
@@ -413,6 +440,8 @@ keyboard_init(struct seat *seat)
 	}
 	xkb_context_unref(context);
 	wlr_keyboard_set_repeat_info(kb, rc.repeat_rate, rc.repeat_delay);
+
+	keybind_update_keycodes(seat->server);
 }
 
 void
