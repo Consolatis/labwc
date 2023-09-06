@@ -53,14 +53,14 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 	if (!nr_syms) {
 		return;
 	}
-	for (int i = 0; i < nr_syms; i++) {
-		xkb_keysym_t sym = syms[i];
-		wl_list_for_each(keybind, &rc.keybinds, link) {
-			if (keybind->keycodes_layout >= 0
-					&& (xkb_layout_index_t)keybind->keycodes_layout != layout) {
-				/* Prevent storing keycodes from multiple layouts */
-				continue;
-			}
+	wl_list_for_each(keybind, &rc.keybinds, link) {
+		if (keybind->keycodes_layout >= 0
+				&& (xkb_layout_index_t)keybind->keycodes_layout != layout) {
+			/* Prevent storing keycodes from multiple layouts */
+			continue;
+		}
+		for (int i = 0; i < nr_syms; i++) {
+			xkb_keysym_t sym = syms[i];
 			for (size_t j = 0; j < keybind->keysyms_len; j++) {
 				if (sym != keybind->keysyms[j]) {
 					continue;
