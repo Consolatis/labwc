@@ -16,6 +16,7 @@ struct keybind {
 	size_t keysyms_len;
 	xkb_keycode_t keycodes[MAX_KEYCODES];
 	size_t keycodes_len;
+	int keycodes_layout;
 	struct wl_list actions;  /* struct action.link */
 	struct wl_list link;     /* struct rcxml.keybinds */
 };

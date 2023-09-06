@@ -56,6 +56,11 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 	for (int i = 0; i < nr_syms; i++) {
 		xkb_keysym_t sym = syms[i];
 		wl_list_for_each(keybind, &rc.keybinds, link) {
+			if (keybind->keycodes_layout >= 0
+					&& (xkb_layout_index_t)keybind->keycodes_layout != layout) {
+				/* Prevent storing keycodes from multiple layouts */
+				continue;
+			}
 			for (size_t j = 0; j < keybind->keysyms_len; j++) {
 				if (sym != keybind->keysyms[j]) {
 					continue;
@@ -79,6 +84,7 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 				}
 				wlr_log(WLR_INFO, "Adding keycode 0x%x\t for sym 0x%x", key, sym);
 				keybind->keycodes[keybind->keycodes_len++] = key;
+				keybind->keycodes_layout = layout;
 			}
 		}
 	}
@@ -93,6 +99,7 @@ keybind_update_keycodes(struct server *server)
 	struct keybind *keybind;
 	wl_list_for_each(keybind, &rc.keybinds, link) {
 		keybind->keycodes_len = 0;
+		keybind->keycodes_layout = -1;
 	}
 	xkb_layout_index_t layouts = xkb_keymap_num_layouts(keymap);
 	for (xkb_layout_index_t i = 0; i < layouts; i++) {
