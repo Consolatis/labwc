@@ -315,7 +315,6 @@ handle_compositor_keybindings(struct keyboard *keyboard,
 
 	/* Handle compositor key bindings */
 	if (event->state == WL_KEYBOARD_KEY_STATE_PRESSED) {
-
 		/* First try keycodes */
 		handled |= handle_keybinding(server, modifiers, XKB_KEY_NoSymbol, keycode);
 		if (handled) {
@@ -325,7 +324,8 @@ handle_compositor_keybindings(struct keyboard *keyboard,
 
 		/* Then fall back to keysyms */
 		for (int i = 0; i < translated.nr_syms; i++) {
-			handled |= handle_keybinding(server, modifiers, translated.syms[i], keycode);
+			handled |= handle_keybinding(server, modifiers, translated.syms[i],
+				keycode);
 		}
 		if (handled) {
 			wlr_log(WLR_ERROR, "translated keysyms matched");
