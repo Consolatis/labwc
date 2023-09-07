@@ -52,6 +52,27 @@ end_cycling(struct server *server)
 }
 
 void
+keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout)
+{
+	assert(kb);
+	if (!kb->xkb_state || layout == XKB_LAYOUT_INVALID) {
+		return;
+	}
+
+	/*
+	 * This function is expected to be called when entering
+	 * a new surface and thus shifting keyboard focus.
+	 *
+	 * We do not actually send anything to clients here.
+	 */
+
+	xkb_state_update_mask(kb->xkb_state, kb->modifiers.depressed,
+		kb->modifiers.latched, kb->modifiers.locked, 0, 0, layout);
+	kb->modifiers.group = xkb_state_serialize_layout(
+		kb->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+}
+
+void
 keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 {
 	struct keyboard *keyboard = wl_container_of(listener, keyboard, modifier);

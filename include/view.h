@@ -97,6 +97,7 @@ struct view {
 	bool fullscreen;
 	uint32_t tiled;  /* private, enum view_edge in src/view.c */
 	bool inhibits_keybinds;
+	xkb_layout_index_t keyboard_layout;
 
 	/* Pointer to an output owned struct region, may be NULL */
 	struct region *tiled_region;

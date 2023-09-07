@@ -630,6 +630,8 @@ xdg_surface_new(struct wl_listener *listener, void *data)
 	struct view *view = &xdg_toplevel_view->base;
 
 	view->server = server;
+	view->keyboard_layout = XKB_LAYOUT_INVALID;
+
 	view->type = LAB_XDG_SHELL_VIEW;
 	view->impl = &xdg_toplevel_view_impl;
 	xdg_toplevel_view->xdg_surface = xdg_surface;

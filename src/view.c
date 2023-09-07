@@ -185,6 +185,15 @@ _view_set_activated(struct view *view, bool activated)
 		wlr_foreign_toplevel_handle_v1_set_activated(
 			view->toplevel.handle, activated);
 	}
+
+	struct wlr_keyboard *kb = &view->server->seat.keyboard_group->keyboard;
+	if (!activated) {
+		/* Store configured keyboard layout per view */
+		view->keyboard_layout = kb->modifiers.group;
+	} else {
+		/* Switch to previously stored keyboard layout */
+		keyboard_update_layout(kb, view->keyboard_layout);
+	}
 }
 
 void
