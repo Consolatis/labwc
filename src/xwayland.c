@@ -665,7 +665,7 @@ xwayland_view_create(struct server *server,
 	struct view *view = &xwayland_view->base;
 
 	view->server = server;
-	view->keyboard_layout = XKB_LAYOUT_INVALID;
+	//view->keyboard_layout = XKB_LAYOUT_INVALID;
 
 	view->type = LAB_XWAYLAND_VIEW;
 	view->impl = &xwayland_view_impl;
