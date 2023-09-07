@@ -63,7 +63,8 @@ keyboard_update_leds(struct wlr_keyboard *kb)
 			leds |= (1 << i);
 		}
 	}
-	wlr_keyboard_led_update(kb, leds);}
+	wlr_keyboard_led_update(kb, leds);
+}
 
 void
 keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout)
