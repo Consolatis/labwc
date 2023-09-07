@@ -51,6 +51,20 @@ end_cycling(struct server *server)
 	should_cancel_cycling_on_next_key_release = false;
 }
 
+static void
+keyboard_update_leds(struct wlr_keyboard *kb)
+{
+	assert(kb);
+
+	uint32_t leds = 0;
+	for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
+		if (xkb_state_led_index_is_active(kb->xkb_state,
+				kb->led_indexes[i])) {
+			leds |= (1 << i);
+		}
+	}
+	wlr_keyboard_led_update(kb, leds);}
+
 void
 keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout)
 {
@@ -70,6 +84,8 @@ keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout)
 		kb->modifiers.latched, kb->modifiers.locked, 0, 0, layout);
 	kb->modifiers.group = xkb_state_serialize_layout(
 		kb->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
+
+	keyboard_update_leds(kb);
 }
 
 void
