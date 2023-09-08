@@ -186,13 +186,13 @@ _view_set_activated(struct view *view, bool activated)
 			view->toplevel.handle, activated);
 	}
 
-	struct wlr_keyboard *kb = &view->server->seat.keyboard_group->keyboard;
 	if (!activated) {
 		/* Store configured keyboard layout per view */
+		struct wlr_keyboard *kb = &view->server->seat.keyboard_group->keyboard;
 		view->keyboard_layout = kb->modifiers.group;
 	} else {
 		/* Switch to previously stored keyboard layout */
-		keyboard_update_layout(kb, view->keyboard_layout);
+		keyboard_update_layout(&view->server->seat, view->keyboard_layout);
 	}
 }
 

@@ -2,6 +2,7 @@
 #include <assert.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/session.h>
+#include <wlr/interfaces/wlr_keyboard.h>
 #include "action.h"
 #include "idle.h"
 #include "key-state.h"
@@ -51,42 +52,38 @@ end_cycling(struct server *server)
 	should_cancel_cycling_on_next_key_release = false;
 }
 
-static void
-keyboard_update_leds(struct wlr_keyboard *kb)
-{
-	assert(kb);
-
-	uint32_t leds = 0;
-	for (uint32_t i = 0; i < WLR_LED_COUNT; ++i) {
-		if (xkb_state_led_index_is_active(kb->xkb_state,
-				kb->led_indexes[i])) {
-			leds |= (1 << i);
-		}
-	}
-	wlr_keyboard_led_update(kb, leds);
-}
-
 void
-keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout)
+keyboard_update_layout(struct seat *seat, xkb_layout_index_t layout)
 {
-	assert(kb);
-	if (!kb->xkb_state || layout == XKB_LAYOUT_INVALID) {
+	assert(seat);
+
+	struct input *input;
+	struct keyboard *keyboard;
+	struct wlr_keyboard *kb = NULL;
+
+	/* We are not using wlr_seat_get_keyboard() here because it might be a virtual one */
+	wl_list_for_each(input, &seat->inputs, link) {
+		if (input->wlr_input_device->type != WLR_INPUT_DEVICE_KEYBOARD) {
+			continue;
+		}
+		keyboard = (struct keyboard *)input;
+		if (keyboard->is_virtual) {
+			continue;
+		}
+		kb = keyboard->wlr_keyboard;
+		break;
+	}
+	if (!kb) {
+		wlr_log(WLR_INFO, "Restoring kb layout failed: no physical keyboard found");
+		return;
+	}
+	if (kb->modifiers.group == layout) {
 		return;
 	}
 
-	/*
-	 * This function is expected to be called when entering
-	 * a new surface and thus shifting keyboard focus.
-	 *
-	 * We do not actually send anything to clients here.
-	 */
-
-	xkb_state_update_mask(kb->xkb_state, kb->modifiers.depressed,
-		kb->modifiers.latched, kb->modifiers.locked, 0, 0, layout);
-	kb->modifiers.group = xkb_state_serialize_layout(
-		kb->xkb_state, XKB_STATE_LAYOUT_EFFECTIVE);
-
-	keyboard_update_leds(kb);
+	wlr_log(WLR_DEBUG, "Updating group layout to %u", layout);
+	wlr_keyboard_notify_modifiers(kb, kb->modifiers.depressed,
+		kb->modifiers.latched, kb->modifiers.locked, layout);
 }
 
 void
@@ -120,6 +117,7 @@ keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 			}
 		}
 	}
+	wlr_seat_set_keyboard(seat->seat, wlr_keyboard);
 	wlr_seat_keyboard_notify_modifiers(seat->seat, &wlr_keyboard->modifiers);
 }
 
@@ -443,7 +441,6 @@ keyboard_key_notify(struct wl_listener *listener, void *data)
 	struct seat *seat = keyboard->base.seat;
 	struct wlr_keyboard_key_event *event = data;
 	struct wlr_seat *wlr_seat = seat->seat;
-	struct wlr_keyboard *wlr_keyboard = keyboard->wlr_keyboard;
 	idle_manager_notify_activity(seat->seat);
 
 	/* any new press/release cancels current keybind repeat */
@@ -455,7 +452,7 @@ keyboard_key_notify(struct wl_listener *listener, void *data)
 			start_keybind_repeat(seat->server, keyboard, event);
 		}
 	} else {
-		wlr_seat_set_keyboard(wlr_seat, wlr_keyboard);
+		wlr_seat_set_keyboard(wlr_seat, keyboard->wlr_keyboard);
 		wlr_seat_keyboard_notify_key(wlr_seat, event->time_msec,
 			event->keycode, event->state);
 	}

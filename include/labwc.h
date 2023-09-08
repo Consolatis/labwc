@@ -396,8 +396,7 @@ void keyboard_key_notify(struct wl_listener *listener, void *data);
 void keyboard_modifiers_notify(struct wl_listener *listener, void *data);
 void keyboard_init(struct seat *seat);
 bool keyboard_any_modifiers_pressed(struct wlr_keyboard *keyboard);
-/* Does not actually send anything to clients, expected to be called before seat_focus_surface() */
-void keyboard_update_layout(struct wlr_keyboard *kb, xkb_layout_index_t layout);
+void keyboard_update_layout(struct seat *seat, xkb_layout_index_t layout);
 void keyboard_finish(struct seat *seat);
 
 void touch_init(struct seat *seat);
