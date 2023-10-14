@@ -28,8 +28,8 @@ ssd_titlebar_create(struct ssd *ssd)
 
 	float *color;
 	struct wlr_scene_tree *parent;
-	struct wlr_buffer *corner_top_left;
-	struct wlr_buffer *corner_top_right;
+	enum lab_corner corner_top_left;
+	enum lab_corner corner_top_right;
 
 	struct wlr_buffer *menu_button_unpressed;
 	struct wlr_buffer *iconify_button_unpressed;
@@ -45,16 +45,20 @@ ssd_titlebar_create(struct ssd *ssd)
 		wlr_scene_node_set_position(&parent->node, 0, -theme->title_height);
 		if (subtree == &ssd->titlebar.active) {
 			color = theme->window_active_title_bg_color;
-			corner_top_left = &theme->corner_top_left_active_normal->base;
-			corner_top_right = &theme->corner_top_right_active_normal->base;
+			corner_top_left = LAB_CORNER_TOP_LEFT_ACTIVE;
+			corner_top_right = LAB_CORNER_TOP_RIGHT_ACTIVE;
+			//corner_top_left = &theme->corner_top_left_active_normal->base;
+			//corner_top_right = &theme->corner_top_right_active_normal->base;
 			menu_button_unpressed = &theme->button_menu_active_unpressed->base;
 			iconify_button_unpressed = &theme->button_iconify_active_unpressed->base;
 			close_button_unpressed = &theme->button_close_active_unpressed->base;
 			maximize_button_unpressed = &theme->button_maximize_active_unpressed->base;
 		} else {
 			color = theme->window_inactive_title_bg_color;
-			corner_top_left = &theme->corner_top_left_inactive_normal->base;
-			corner_top_right = &theme->corner_top_right_inactive_normal->base;
+			corner_top_left = LAB_CORNER_TOP_LEFT_INACTIVE;
+			corner_top_right = LAB_CORNER_TOP_RIGHT_INACTIVE;
+			//corner_top_left = &theme->corner_top_left_inactive_normal->base;
+			//corner_top_right = &theme->corner_top_right_inactive_normal->base;
 			menu_button_unpressed = &theme->button_menu_inactive_unpressed->base;
 			iconify_button_unpressed = &theme->button_iconify_inactive_unpressed->base;
 			maximize_button_unpressed =

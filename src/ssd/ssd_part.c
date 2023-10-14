@@ -78,10 +78,22 @@ add_scene_buffer(struct wl_list *list, enum ssd_part_type type,
 	return part;
 }
 
+static struct ssd_part *
+add_scaled_corner(struct wl_list *list, enum ssd_part_type type,
+	struct wlr_scene_tree *parent, enum lab_corner corner,
+	int x, int y)
+{
+	wlr_log(WLR_INFO, "add scaled corner part");
+	struct ssd_part *part = add_scene_part(list, type);
+	part->node = &scaled_corner_buffer_create(parent, corner)->scene_buffer->node;
+	wlr_scene_node_set_position(part->node, x, y);
+	return part;
+}
+
 struct ssd_part *
 add_scene_button_corner(struct wl_list *part_list, enum ssd_part_type type,
 		enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
-		struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
+		enum lab_corner corner, struct wlr_buffer *icon_buffer,
 		int x, struct view *view)
 {
 	int offset_x;
@@ -104,7 +116,9 @@ add_scene_button_corner(struct wl_list *part_list, enum ssd_part_type type,
 	 * Background, x and y adjusted for border_width which is
 	 * already included in rendered theme.c / corner_buffer
 	 */
-	add_scene_buffer(part_list, corner_type, parent, corner_buffer,
+	//add_scene_node(part_list, corner_type, parent, corner_buffer,
+	//	-offset_x, -rc.theme->border_width);
+	add_scaled_corner(part_list, corner_type, parent, corner,
 		-offset_x, -rc.theme->border_width);
 
 	/* Finally just put a usual theme button on top, using an invisible hitbox */

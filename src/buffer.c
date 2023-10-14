@@ -31,6 +31,11 @@
 #include "buffer.h"
 #include "common/mem.h"
 
+
+#include <wlr/util/log.h>
+
+static int active = 0;
+
 static const struct wlr_buffer_impl data_buffer_impl;
 
 static struct lab_data_buffer *
@@ -43,6 +48,7 @@ data_buffer_from_buffer(struct wlr_buffer *buffer)
 static void
 data_buffer_destroy(struct wlr_buffer *wlr_buffer)
 {
+	wlr_log(WLR_INFO, "[%p] buffer destroyed", wlr_buffer);
 	struct lab_data_buffer *buffer = data_buffer_from_buffer(wlr_buffer);
 	if (!buffer->free_on_destroy) {
 		free(buffer);
@@ -57,6 +63,9 @@ data_buffer_destroy(struct wlr_buffer *wlr_buffer)
 		buffer->data = NULL;
 	}
 	free(buffer);
+
+	active--;
+	wlr_log(WLR_DEBUG, "active buffers: %d", active);
 }
 
 static bool
@@ -120,6 +129,11 @@ buffer_create_cairo(uint32_t width, uint32_t height, float scale,
 		free(buffer);
 		buffer = NULL;
 	}
+
+	wlr_log(WLR_INFO, "[%p] buffer created", buffer ? &buffer->base : NULL);
+	active++;
+	wlr_log(WLR_DEBUG, "active buffers: %d", active);
+
 	return buffer;
 }
 
@@ -133,5 +147,9 @@ buffer_create_wrap(void *pixel_data, uint32_t width, uint32_t height,
 	buffer->format = DRM_FORMAT_ARGB8888;
 	buffer->stride = stride;
 	buffer->free_on_destroy = free_on_destroy;
+
+	active++;
+	wlr_log(WLR_DEBUG, "active buffers: %d", active);
+
 	return buffer;
 }

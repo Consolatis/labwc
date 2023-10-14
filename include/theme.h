@@ -17,6 +17,13 @@ enum lab_justification {
 	LAB_JUSTIFY_RIGHT,
 };
 
+enum lab_corner {
+	LAB_CORNER_TOP_LEFT_ACTIVE,
+	LAB_CORNER_TOP_LEFT_INACTIVE,
+	LAB_CORNER_TOP_RIGHT_ACTIVE,
+	LAB_CORNER_TOP_RIGHT_INACTIVE,
+};
+
 struct theme {
 	int border_width;
 	int padding_height;
@@ -86,12 +93,12 @@ struct theme {
 	struct lab_data_buffer *button_maximize_inactive_unpressed;
 	struct lab_data_buffer *button_iconify_inactive_unpressed;
 	struct lab_data_buffer *button_menu_inactive_unpressed;
-
+#if 0
 	struct lab_data_buffer *corner_top_left_active_normal;
 	struct lab_data_buffer *corner_top_right_active_normal;
 	struct lab_data_buffer *corner_top_left_inactive_normal;
 	struct lab_data_buffer *corner_top_right_inactive_normal;
-
+#endif
 	/* not set in rc.xml/themerc, but derived from font & padding_height */
 	int osd_window_switcher_item_height;
 };
@@ -109,5 +116,18 @@ void theme_init(struct theme *theme, const char *theme_name);
  * @theme: theme data
  */
 void theme_finish(struct theme *theme);
+
+
+struct wlr_scene_buffer;
+struct wlr_scene_tree;
+
+struct scaled_corner_buffer {
+	struct wlr_scene_buffer *scene_buffer;
+	enum lab_corner corner;
+};
+
+struct scaled_corner_buffer *scaled_corner_buffer_create(struct wlr_scene_tree *parent, enum lab_corner corner);
+void corners_reconfigure(struct theme *theme);
+void corners_finish(struct theme *theme);
 
 #endif /* LABWC_THEME_H */
