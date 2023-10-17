@@ -13,6 +13,8 @@
 #include "workspaces.h"
 #include "xwayland.h"
 
+xcb_atom_t atoms[ATOM_LEN] = {0};
+
 static struct view_size_hints
 xwayland_view_get_size_hints(struct view *view)
 {
@@ -814,11 +816,109 @@ handle_new_surface(struct wl_listener *listener, void *data)
 }
 
 static void
+sync_atoms(struct server *server)
+{
+	if (!server->xcb_conn) {
+		return;
+	}
+
+	wlr_log(WLR_INFO, "Syncing atoms");
+	xcb_connection_t *xcb_conn = server->xcb_conn;
+	xcb_intern_atom_cookie_t cookies[ATOM_LEN];
+
+	/* First request everything and then loop over the results to reduce latency */
+	for (size_t i = 0; i < ATOM_LEN; i++) {
+		cookies[i] = xcb_intern_atom(xcb_conn, 0,
+			strlen(atom_names[i]), atom_names[i]);
+	}
+
+	for (size_t i = 0; i < ATOM_LEN; i++) {
+		xcb_generic_error_t *err = NULL;
+		xcb_intern_atom_reply_t *reply =
+			xcb_intern_atom_reply(xcb_conn, cookies[i], &err);
+		if (reply) {
+			atoms[i] = reply->atom;
+			wlr_log(WLR_DEBUG, "Got X11 atom for %s: %u",
+				atom_names[i], reply->atom);
+		}
+		if (err) {
+			wlr_log(WLR_INFO, "Failed to get X11 atom for %s",
+				atom_names[i]);
+		}
+		free(reply);
+		free(err);
+	}
+#if 0
+	wlr_log(WLR_INFO, "Disconnecting xcb connection");
+	xcb_disconnect(xcb_conn);
+	server->xcb_conn = NULL;
+#endif
+}
+
+static void
 handle_ready(struct wl_listener *listener, void *data)
 {
 	struct server *server =
 		wl_container_of(listener, server, xwayland_ready);
+
+	server->xcb_conn = xcb_connect(NULL, NULL);
+	if (xcb_connection_has_error(server->xcb_conn)) {
+		wlr_log(WLR_ERROR, "Failed to create xcb connection");
+		server->xcb_conn = NULL;
+	} else {
+		wlr_log(WLR_INFO, "Connected to xwayland");
+		sync_atoms(server);
+	}
+
 	wlr_xwayland_set_seat(server->xwayland, server->seat.seat);
+
+}
+
+static void
+handle_x11_destroy(struct wl_listener *listener, void *data)
+{
+	struct server *server =
+		wl_container_of(listener, server, xwayland_destroyed);
+	wlr_log(WLR_ERROR, "xwayland destroyed");
+	if (server->xcb_conn) {
+		wlr_log(WLR_ERROR, "disconnected from xwayland");
+		xcb_disconnect(server->xcb_conn);
+		server->xcb_conn = NULL;
+	}
+}
+
+struct wlr_xwm;
+
+/* Must return 0 to allow the default handlers to execute or 1 otherwise */
+static int
+handle_xcb_event(struct wlr_xwm *xwm, xcb_generic_event_t *event)
+{
+#if 1
+	return 0;
+#endif
+	wlr_log(WLR_DEBUG, "Got xcb event");
+	switch(event->response_type & XCB_EVENT_RESPONSE_TYPE_MASK) {
+	case XCB_PROPERTY_NOTIFY:
+		{
+			xcb_property_notify_event_t *ev = (__typeof__(ev))event;
+			wlr_log(WLR_DEBUG, "\tproperty notify for 0x%x atom %u",
+				ev->window, ev->atom);
+			if (ev->atom == atoms[NET_WM_WINDOW_TYPE]) {
+				wlr_log(WLR_INFO, "\t\tFound window type update, "
+					"who needs a set_window_type signal anyway");
+			}
+		}
+		break;
+	case XCB_MAP_REQUEST:
+		{
+			xcb_map_request_event_t *ev = (__typeof__(ev))event;
+			wlr_log(WLR_DEBUG, "\tmap request for 0x%x", ev->window);
+		}
+		break;
+	default:
+		break;
+	}
+	return 0;
 }
 
 void
@@ -835,8 +935,14 @@ xwayland_server_init(struct server *server, struct wlr_compositor *compositor)
 		&server->xwayland_new_surface);
 
 	server->xwayland_ready.notify = handle_ready;
-	wl_signal_add(&server->xwayland->events.ready,
+	//wl_signal_add(&server->xwayland->events.ready,
+	//	&server->xwayland_ready);
+	wl_signal_add(&server->xwayland->server->events.ready,
 		&server->xwayland_ready);
+
+	server->xwayland_destroyed.notify = handle_x11_destroy;
+	wl_signal_add(&server->xwayland->server->events.destroy,
+		&server->xwayland_destroyed);
 
 	if (setenv("DISPLAY", server->xwayland->display_name, true) < 0) {
 		wlr_log_errno(WLR_ERROR, "unable to set DISPLAY for xwayland");
@@ -855,6 +961,8 @@ xwayland_server_init(struct server *server, struct wlr_compositor *compositor)
 			image->height, image->hotspot_x,
 			image->hotspot_y);
 	}
+
+	server->xwayland->user_event_handler = handle_xcb_event;
 }
 
 void

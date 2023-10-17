@@ -41,6 +41,9 @@
 #include <wlr/types/wlr_virtual_keyboard_v1.h>
 #include <wlr/util/log.h>
 #include <xkbcommon/xkbcommon.h>
+#if HAVE_XWAYLAND
+#include <xcb/xcb.h>
+#endif
 #include "cursor.h"
 #include "config/keybind.h"
 #include "config/rcxml.h"
@@ -223,7 +226,10 @@ struct server {
 #if HAVE_XWAYLAND
 	struct wlr_xwayland *xwayland;
 	struct wl_listener xwayland_ready;
+	struct wl_listener xwayland_destroyed;
 	struct wl_listener xwayland_new_surface;
+	/* Used to fetch some atoms */
+	xcb_connection_t *xcb_conn;
 #endif
 
 	struct wlr_input_inhibit_manager *input_inhibit;

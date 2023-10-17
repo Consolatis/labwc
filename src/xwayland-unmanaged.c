@@ -32,6 +32,55 @@ unmanaged_handle_set_geometry(struct wl_listener *listener, void *data)
 	}
 }
 
+static bool
+is_menu(struct server *server, struct wlr_xwayland_surface *surface) {
+	wlr_log(WLR_INFO, "Checking %lu window types for giggles",
+		surface->window_type_len);
+
+	bool _menu = false;
+	xcb_atom_t menu = atoms[NET_WM_WINDOW_TYPE_MENU];
+	xcb_atom_t popup = atoms[NET_WM_WINDOW_TYPE_POPUP_MENU];
+	xcb_atom_t dropdown = atoms[NET_WM_WINDOW_TYPE_DROPDOWN_MENU];
+
+	for (size_t i = 0; i < surface->window_type_len; i++) {
+		xcb_atom_t wtype = surface->window_type[i];
+
+		if (wtype == menu || wtype == popup || wtype == dropdown) {
+			_menu = true;
+		}
+
+		/* Debug only */
+		bool found = false;
+		for (size_t k = 0; k < ATOM_LEN; k++) {
+			if (wtype == atoms[k]) {
+				found = true;
+				wlr_log(WLR_DEBUG, "\tfound window type %s",
+					atom_names[k]);
+			}
+		}
+		if (!found) {
+			wlr_log(WLR_ERROR, "\tfound unknown window type: %u", wtype);
+			if (!server->xcb_conn) {
+				continue;
+			}
+			xcb_get_atom_name_cookie_t cookie =
+				xcb_get_atom_name(server->xcb_conn, wtype);
+			xcb_generic_error_t *err = NULL;
+			xcb_get_atom_name_reply_t *reply =
+				xcb_get_atom_name_reply(server->xcb_conn, cookie, &err);
+			if (err) {
+				wlr_log(WLR_ERROR, "\tfailed to get reply");
+			} else if(reply) {
+				wlr_log(WLR_ERROR, "\twhich is %s",
+					xcb_get_atom_name_name(reply));
+			}
+			free(reply);
+			free(err);
+		}
+	}
+	return _menu;
+}
+
 static void
 unmanaged_handle_map(struct wl_listener *listener, void *data)
 {
@@ -57,6 +106,8 @@ unmanaged_handle_map(struct wl_listener *listener, void *data)
 			xsurface->surface)->buffer->node;
 	wlr_scene_node_set_position(unmanaged->node, xsurface->x, xsurface->y);
 	cursor_update_focus(unmanaged->server);
+	bool menu = is_menu(unmanaged->server, xsurface);
+	wlr_log(WLR_ERROR, "is menu: %s", menu ? "yes" : "no");
 }
 
 static void
