@@ -15,6 +15,53 @@
 
 xcb_atom_t atoms[ATOM_LEN] = {0};
 
+
+static bool
+is_dock(struct server *server, struct wlr_xwayland_surface *surface) {
+	wlr_log(WLR_INFO, "Checking %lu window types for giggles",
+		surface->window_type_len);
+
+	bool _dock = false;
+
+	for (size_t i = 0; i < surface->window_type_len; i++) {
+		xcb_atom_t wtype = surface->window_type[i];
+
+		if (wtype == atoms[NET_WM_WINDOW_TYPE_DOCK]) {
+			_dock = true;
+		}
+
+		/* Debug only */
+		bool found = false;
+		for (size_t k = 0; k < ATOM_LEN; k++) {
+			if (wtype == atoms[k]) {
+				found = true;
+				wlr_log(WLR_DEBUG, "\tfound window type %s",
+					atom_names[k]);
+			}
+		}
+		if (!found) {
+			wlr_log(WLR_ERROR, "\tfound unknown window type: %u", wtype);
+			if (!server->xcb_conn) {
+				continue;
+			}
+			xcb_get_atom_name_cookie_t cookie =
+				xcb_get_atom_name(server->xcb_conn, wtype);
+			xcb_generic_error_t *err = NULL;
+			xcb_get_atom_name_reply_t *reply =
+				xcb_get_atom_name_reply(server->xcb_conn, cookie, &err);
+			if (err) {
+				wlr_log(WLR_ERROR, "\tfailed to get reply");
+			} else if(reply) {
+				wlr_log(WLR_ERROR, "\twhich is %s",
+					xcb_get_atom_name_name(reply));
+			}
+			free(reply);
+			free(err);
+		}
+	}
+	return _dock;
+}
+
 static struct view_size_hints
 xwayland_view_get_size_hints(struct view *view)
 {
@@ -566,6 +613,9 @@ xwayland_view_map(struct view *view)
 
 	view_impl_map(view);
 	view->been_mapped = true;
+
+	bool dock = is_dock(view->server, xwayland_surface);
+	wlr_log(WLR_ERROR, "is dock: %s", dock ? "yes" : "no");
 }
 
 static void
@@ -893,7 +943,7 @@ struct wlr_xwm;
 static int
 handle_xcb_event(struct wlr_xwm *xwm, xcb_generic_event_t *event)
 {
-#if 1
+#if 0
 	return 0;
 #endif
 	wlr_log(WLR_DEBUG, "Got xcb event");
@@ -903,18 +953,26 @@ handle_xcb_event(struct wlr_xwm *xwm, xcb_generic_event_t *event)
 			xcb_property_notify_event_t *ev = (__typeof__(ev))event;
 			wlr_log(WLR_DEBUG, "\tproperty notify for 0x%x atom %u",
 				ev->window, ev->atom);
-			if (ev->atom == atoms[NET_WM_WINDOW_TYPE]) {
+			if (ev->atom == atoms[NET_WM_STATE]) {
+				wlr_log(WLR_INFO, "\t\tFound window wm state update");
+			} else if (ev->atom == atoms[NET_WM_WINDOW_TYPE]) {
 				wlr_log(WLR_INFO, "\t\tFound window type update, "
 					"who needs a set_window_type signal anyway");
+			} else if (ev->atom == atoms[NET_WM_STRUT]) {
+				wlr_log(WLR_INFO, "\t\tFound window strut update");
+			} else if (ev->atom == atoms[NET_WM_STRUT_PARTIAL]) {
+				wlr_log(WLR_INFO, "\t\tFound window strut partial update");
 			}
 		}
 		break;
+#if 0
 	case XCB_MAP_REQUEST:
 		{
 			xcb_map_request_event_t *ev = (__typeof__(ev))event;
 			wlr_log(WLR_DEBUG, "\tmap request for 0x%x", ev->window);
 		}
 		break;
+#endif
 	default:
 		break;
 	}

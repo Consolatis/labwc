@@ -60,9 +60,18 @@ void xwayland_server_init(struct server *server,
 void xwayland_server_finish(struct server *server);
 
 
-/* https://specifications.freedesktop.org/wm-spec/wm-spec-1.4.html#idm45649101374512 */
 enum atom {
 	NET_WM_WINDOW_TYPE = 0,
+	/* https://specifications.freedesktop.org/wm-spec/wm-spec-1.4.html#NETWMSTRUT */
+	NET_WM_STRUT,
+	NET_WM_STRUT_PARTIAL,
+	/* https://specifications.freedesktop.org/wm-spec/wm-spec-1.4.html#idm45649101361232 */
+	NET_WM_STATE,
+	NET_WM_STATE_SKIP_TASKBAR,
+	NET_WM_STATE_SKIP_PAGER,
+	NET_WM_STATE_ABOVE,
+	NET_WM_STATE_BELOW,
+	/* https://specifications.freedesktop.org/wm-spec/wm-spec-1.4.html#idm45649101374512 */
 	NET_WM_WINDOW_TYPE_DESKTOP,
 	NET_WM_WINDOW_TYPE_DOCK,
 	NET_WM_WINDOW_TYPE_TOOLBAR,
@@ -77,12 +86,23 @@ enum atom {
 	NET_WM_WINDOW_TYPE_COMBO,
 	NET_WM_WINDOW_TYPE_DND,
 	NET_WM_WINDOW_TYPE_NORMAL,
+
 	ATOM_NON_EXISTING_TESTCASE_FOO,
 	ATOM_LEN
 };
 
 static const char *const atom_names[ATOM_LEN] = {
 	"_NET_WM_WINDOW_TYPE",
+
+	"_NET_WM_STRUT",
+	"_NET_WM_STRUT_PARTIAL",
+
+	"_NET_WM_STATE",
+	"_NET_WM_STATE_SKIP_TASKBAR",
+	"_NET_WM_STATE_SKIP_PAGER",
+	"_NET_WM_STATE_ABOVE",
+	"_NET_WM_STATE_BELOW",
+
 	"_NET_WM_WINDOW_TYPE_DESKTOP",
 	"_NET_WM_WINDOW_TYPE_DOCK",
 	"_NET_WM_WINDOW_TYPE_TOOLBAR",
@@ -97,6 +117,7 @@ static const char *const atom_names[ATOM_LEN] = {
 	"_NET_WM_WINDOW_TYPE_COMBO",
 	"_NET_WM_WINDOW_TYPE_DND",
 	"_NET_WM_WINDOW_TYPE_NORMAL",
+
 	"FooBARbazBar",
 };
 
