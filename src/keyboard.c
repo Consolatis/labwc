@@ -236,11 +236,12 @@ handle_compositor_keybindings(struct keyboard *keyboard,
 	bool is_layout_switch = false;
 	uint32_t modifiers = wlr_keyboard_get_modifiers(wlr_keyboard);
 
+	for (int i = 0; i < raw.nr_syms; i++) {
+		is_modifier |= is_modifier_key(raw.syms[i]);
+	}
 	for (int i = 0; i < translated.nr_syms; i++) {
-		is_modifier |= is_modifier_key(translated.syms[i]);
 		is_layout_switch |= translated.syms[i] == XKB_KEY_ISO_Next_Group;
 	}
-
 	if (!is_modifier && !is_layout_switch) {
 		key_state_set_pressed(event->keycode,
 			event->state == WL_KEYBOARD_KEY_STATE_PRESSED);
