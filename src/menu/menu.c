@@ -281,7 +281,13 @@ separator_create(struct menu *menu, const char *label)
 static void
 fill_item(char *nodename, char *content)
 {
+	/*
+	 * Nodenames for most menu-items end with '.item.menu' but top-level
+	 * pipemenu items do not have the associated <menu> element so merely
+	 * end with a '.item'
+	 */
 	string_truncate_at_pattern(nodename, ".item.menu");
+	string_truncate_at_pattern(nodename, ".item");
 
 	/* <item label=""> defines the start of a new item */
 	if (!strcmp(nodename, "label")) {
@@ -341,7 +347,11 @@ static bool
 nodename_supports_cdata(char *nodename)
 {
 	return match_glob("command.action.item.*menu.openbox_menu", nodename)
-		|| match_glob("execute.action.item.*menu.openbox_menu", nodename);
+		|| match_glob("execute.action.item.*menu.openbox_menu", nodename)
+		|| match_glob("command.action.item.openbox_pipe_menu", nodename)
+		|| match_glob("execute.action.item.openbox_pipe_menu", nodename)
+		|| match_glob("command.action.item.*menu.openbox_pipe_menu", nodename)
+		|| match_glob("execute.action.item.*menu.openbox_pipe_menu", nodename);
 }
 
 static void
@@ -358,6 +368,7 @@ entry(xmlNode *node, char *nodename, char *content)
 		return;
 	}
 	string_truncate_at_pattern(nodename, ".openbox_menu");
+	string_truncate_at_pattern(nodename, ".openbox_pipe_menu");
 	if (getenv("LABWC_DEBUG_MENU_NODENAMES")) {
 		printf("%s: %s\n", nodename, content ? content : (char *)cdata);
 	}
@@ -418,8 +429,11 @@ handle_menu_element(xmlNode *n, struct server *server)
 	char *execute = (char *)xmlGetProp(n, (const xmlChar *)"execute");
 	char *id = (char *)xmlGetProp(n, (const xmlChar *)"id");
 
-	if (execute) {
-		wlr_log(WLR_ERROR, "we do not support pipemenus");
+	if (execute && label) {
+		wlr_log(WLR_INFO, "pipemenu '%s - %s'", execute, label);
+		current_item = item_create(current_menu, label, /* arrow */ true);
+		current_item_action = NULL;
+		current_item->execute = strdup(execute);
 	} else if ((label && id) || (id && nr_parents(n) == 2)) {
 		/*
 		 * (label && id) refers to <menu id="" label=""> which is an
@@ -654,8 +668,9 @@ menu_configure(struct menu *menu, int lx, int ly, enum menu_align align)
 	}
 	wlr_scene_node_set_position(&menu->scene_tree->node, lx, ly);
 
-	int rel_y;
-	int new_lx, new_ly;
+	/* Needed for pipemenus to inherit alignment */
+	menu->align = align;
+
 	struct menuitem *item;
 	wl_list_for_each(item, &menu->menuitems, link) {
 		if (!item->submenu) {
@@ -774,16 +789,47 @@ menu_init(struct server *server)
 	validate(server);
 }
 
-void
-menu_finish(struct server *server)
+static void
+nullify_item_pointing_to_this_menu(struct menu *menu)
 {
+	struct menu *iter;
+	wl_list_for_each(iter, &menu->server->menus, link) {
+		struct menuitem *item;
+		wl_list_for_each(item, &iter->menuitems, link) {
+			if (item->submenu == menu) {
+				item->submenu = NULL;
+				return;
+			}
+		}
+	}
+}
+
+/**
+ * menu_free_from - free menu list starting from current point
+ * @from: point to free from (if NULL, all menus are freed)
+ */
+static void
+menu_free_from(struct server *server, struct menu *from)
+{
+	bool destroying = !from;
 	struct menu *menu, *tmp_menu;
 	wl_list_for_each_safe(menu, tmp_menu, &server->menus, link) {
+		if (menu == from) {
+			destroying = true;
+		}
+		if (!destroying) {
+			continue;
+		}
+
+		/* Keep items clean on pipemenu destruction */
+		nullify_item_pointing_to_this_menu(menu);
+
 		struct menuitem *item, *next;
 		wl_list_for_each_safe(item, next, &menu->menuitems, link) {
 			item_destroy(item);
 		}
-		/**
+
+		/*
 		 * Destroying the root node will destroy everything,
 		 * including node descriptors and scaled_font_buffers.
 		 */
@@ -791,6 +837,12 @@ menu_finish(struct server *server)
 		wl_list_remove(&menu->link);
 		zfree(menu);
 	}
+}
+
+void
+menu_finish(struct server *server)
+{
+	menu_free_from(server, NULL);
 }
 
 /* Sets selection (or clears selection if passing NULL) */
@@ -827,18 +879,30 @@ close_all_submenus(struct menu *menu)
 }
 
 static void
+_close(struct menu *menu)
+{
+	wlr_scene_node_set_enabled(&menu->scene_tree->node, false);
+	menu_set_selection(menu, NULL);
+	if (menu->selection.menu) {
+		_close(menu->selection.menu);
+		menu->selection.menu = NULL;
+	}
+}
+
+static void
 menu_close(struct menu *menu)
 {
 	if (!menu) {
 		wlr_log(WLR_ERROR, "Trying to close non exiting menu");
 		return;
 	}
-	wlr_scene_node_set_enabled(&menu->scene_tree->node, false);
-	menu_set_selection(menu, NULL);
-	if (menu->selection.menu) {
-		menu_close(menu->selection.menu);
-		menu->selection.menu = NULL;
+	struct server *server = menu->server;
+	wlr_log(WLR_DEBUG, "number of menus before close=%d", wl_list_length(&server->menus));
+	_close(menu);
+	if (menu->is_pipemenu) {
+		menu_free_from(menu->server, menu);
 	}
+	wlr_log(WLR_DEBUG, "number of menus after  close=%d", wl_list_length(&server->menus));
 }
 
 void
@@ -857,6 +921,34 @@ menu_open_root(struct menu *menu, int x, int y)
 }
 
 static void
+parse_pipemenu(struct menuitem *item)
+{
+	FILE *fp = popen(item->execute, "r");
+	if (!fp) {
+		return;
+	}
+	struct server *server = item->parent->server;
+
+	/*
+	 * Pipemenus do not contain a toplevel <menu> element so we have to
+	 * create that first `struct menu`.
+	 *
+	 * We just use for the 'execute' command as a menu id. If this creates a
+	 * name-space issue, we'll have to uniquify them.
+	 */
+	++menu_level;
+	current_menu = menu_create(server, item->execute, NULL);
+	current_menu->is_pipemenu = true;
+	wlr_log(WLR_INFO, "parse pipemenu '%s'", item->execute);
+	parse(server, fp);
+	current_menu = current_menu->parent;
+	item->submenu = menu_get_by_id(server, item->execute);
+	--menu_level;
+
+	pclose(fp);
+}
+
+static void
 menu_process_item_selection(struct menuitem *item)
 {
 	assert(item);
@@ -872,11 +964,43 @@ menu_process_item_selection(struct menuitem *item)
 		return;
 	}
 
-	/* We are on an item that has new mouse-focus */
+	/* We are on an item that has new focus */
 	menu_set_selection(item->parent, item);
 	if (item->parent->selection.menu) {
 		/* Close old submenu tree */
 		menu_close(item->parent->selection.menu);
+	}
+
+	/* Pipemenu */
+	if (item->execute) {
+		parse_pipemenu(item);
+		if (!item->submenu) {
+			goto out;
+		}
+
+		/*
+		 * TODO: refactor validate() and post_processing() to only
+		 * operate from current point onwards
+		 */
+
+		/* Set menu-widths before configuring */
+		post_processing(item->parent->server);
+
+		/*
+		 * TODO:
+		 * (1) Combine this with the code in get_submenu_position()
+		 *     and/or menu_configure()
+		 * (2) Take into account menu_overlap_{x,y}
+		 */
+		enum menu_align align = item->parent->align;
+		int x = item->parent->scene_tree->node.x;
+		int y = item->parent->scene_tree->node.y + item->tree->node.y;
+		if (align & LAB_MENU_OPEN_RIGHT) {
+			x += item->parent->size.width;
+		}
+		menu_configure(item->submenu, x, y, align);
+
+		validate(item->parent->server);
 	}
 
 	if (item->submenu) {
@@ -888,6 +1012,7 @@ menu_process_item_selection(struct menuitem *item)
 		wlr_scene_node_set_enabled(
 			&item->submenu->scene_tree->node, true);
 	}
+out:
 	item->parent->selection.menu = item->submenu;
 }
 
