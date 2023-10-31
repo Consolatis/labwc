@@ -562,7 +562,7 @@ show_menu(struct server *server, struct view *view, const char *menu_name)
 	}
 	/* Replaced by next show_menu() or cleaned on view_destroy() */
 	menu->triggered_by_view = view;
-	menu_open(menu, x, y);
+	menu_open_root(menu, x, y);
 }
 
 static struct view *
