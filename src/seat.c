@@ -260,7 +260,8 @@ new_tablet(struct seat *seat, struct wlr_input_device *dev)
 {
 	struct input *input = znew(*input);
 	input->wlr_input_device = dev;
-	drawing_tablet_setup_handlers(dev);
+	drawing_tablet_setup_handlers(seat, dev);
+	//wlr_cursor_attach_input_device(seat->cursor, dev);
 	return input;
 }
 

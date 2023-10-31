@@ -3,9 +3,11 @@
 #define LABWC_DRAWING_TABLET_H
 
 #include <wayland-server-core.h>
+struct seat;
 struct wlr_device;
 
 struct drawing_tablet {
+	struct seat *seat;
 	struct wlr_tablet *tablet;
 	struct {
 		struct wl_listener axis;
@@ -17,6 +19,6 @@ struct drawing_tablet {
 };
 
 
-void drawing_tablet_setup_handlers(struct wlr_input_device *wlr_input_device);
+void drawing_tablet_setup_handlers(struct seat *seat, struct wlr_input_device *wlr_input_device);
 
 #endif /* LABWC_DRAWING_TABLET_H */
