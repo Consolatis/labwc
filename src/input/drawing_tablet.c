@@ -28,7 +28,7 @@ handle_axis(struct wl_listener *listener, void *data)
 		if (ev->x > 0.0f && ev->y > 0.0f) {
 			cursor_emulate_move_absolute(tablet->seat, ev->x, ev->y, ev->time_msec);
 		} else {
-			wlr_log(WLR_INFO, "Blocking strange axis pos: %.10f, %.10f", ev->x, ev->y);
+			wlr_log(WLR_DEBUG, "Blocking strange axis pos: %.10f, %.10f", ev->x, ev->y);
 		}
 	}
 	if (ev->updated_axes & (WLR_TABLET_TOOL_AXIS_TILT_X | WLR_TABLET_TOOL_AXIS_TILT_Y)) {
@@ -114,8 +114,10 @@ handle_button(struct wl_listener *listener, void *data)
 
 	uint32_t button = get_mapped_button(ev->button);
 	if (!button) {
+		wlr_log(WLR_INFO, "no button map target found");
 		return;
 	}
+	wlr_log(WLR_INFO, "emulatating button %u", button);
 	cursor_emulate_button(tablet->seat, button, ev->state, ev->time_msec);
 }
 

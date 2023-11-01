@@ -952,8 +952,8 @@ rcxml_init(void)
 	rc.doubleclick_time = 500;
 	rc.scroll_factor = 1.0;
 	rc.tablet.button_map[0] = (struct button_map_entry){.from = BTN_TOOL_PEN, .to = BTN_LEFT };
-	rc.tablet.button_map[1] = (struct button_map_entry){.from = BTN_TOOL_BRUSH, .to = BTN_RIGHT };
-	rc.tablet.button_map[2] = (struct button_map_entry){.from = BTN_TOOL_PENCIL, .to = BTN_MIDDLE };
+	rc.tablet.button_map[1] = (struct button_map_entry){.from = BTN_STYLUS, .to = BTN_RIGHT };
+	rc.tablet.button_map[2] = (struct button_map_entry){.from = BTN_STYLUS2, .to = BTN_MIDDLE };
 	rc.tablet.button_map_count = 3;
 	rc.repeat_rate = 25;
 	rc.repeat_delay = 600;
