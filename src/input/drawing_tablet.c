@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <assert.h>
 #include <stdlib.h>
+#include <linux/input-event-codes.h>
 #include <wlr/types/wlr_tablet_pad.h>
 #include <wlr/types/wlr_tablet_tool.h>
 #include <wlr/util/log.h>
@@ -8,6 +9,8 @@
 #include "common/mem.h"
 #include "input/cursor.h"
 #include "input/drawing_tablet.h"
+
+#include "config/rcxml.h"
 
 static void
 setup_pad(struct seat *seat, struct wlr_input_device *wlr_device)
@@ -65,6 +68,19 @@ handle_proximity(struct wl_listener *listener, void *data)
 		ev->state == WLR_TABLET_TOOL_PROXIMITY_IN ? "in" : "out");
 }
 
+static uint32_t
+get_mapped_button(uint32_t src_button)
+{
+	struct button_map_entry *map_entry;
+	for (size_t i = 0; i < rc.tablet.button_map_count; i++) {
+		map_entry = &rc.tablet.button_map[i];
+		if (map_entry->from == src_button) {
+			return map_entry->to;
+		}
+	}
+	return 0;
+}
+
 static void
 handle_tip(struct wl_listener *listener, void *data)
 {
@@ -74,7 +90,14 @@ handle_tip(struct wl_listener *listener, void *data)
 	wlr_log(WLR_INFO, "\t %.10f,%1.10f", ev->x, ev->y);
 	wlr_log(WLR_INFO, "\t state %s",
 		ev->state == WLR_TABLET_TOOL_TIP_UP ? "released" : "pressed");
+
+	uint32_t button = get_mapped_button(BTN_TOOL_PEN);
+	if (!button) {
+		return;
+	}
+
 	cursor_emulate_button(tablet->seat,
+		button,
 		ev->state == WLR_TABLET_TOOL_TIP_DOWN
 			? WLR_BUTTON_PRESSED
 			: WLR_BUTTON_RELEASED,
@@ -85,9 +108,15 @@ static void
 handle_button(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_button_event *ev = data;
+	struct drawing_tablet *tablet = ev->tablet->data;
 	wlr_log(WLR_INFO, "Got button event: %u %s", ev->button,
 		ev->state == WLR_BUTTON_RELEASED ? "release" : "press");
-	//cursor_emulate_button(tablet->seat, state, ev->time_msec);
+
+	uint32_t button = get_mapped_button(ev->button);
+	if (!button) {
+		return;
+	}
+	cursor_emulate_button(tablet->seat, button, ev->state, ev->time_msec);
 }
 
 static void

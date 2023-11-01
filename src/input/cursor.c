@@ -1026,17 +1026,18 @@ cursor_emulate_move_absolute(struct seat *seat, double x, double y, uint32_t tim
 }
 
 void
-cursor_emulate_button(struct seat *seat, enum wlr_button_state state, uint32_t time_msec)
+cursor_emulate_button(struct seat *seat, uint32_t button,
+		enum wlr_button_state state, uint32_t time_msec)
 {
 	wlr_log(WLR_INFO, "emulating button");
 	idle_manager_notify_activity(seat->seat);
 
 	switch (state) {
 	case WLR_BUTTON_PRESSED:
-		cursor_button_press(seat, BTN_LEFT, state, time_msec);
+		cursor_button_press(seat, button, state, time_msec);
 		break;
 	case WLR_BUTTON_RELEASED:
-		cursor_button_release(seat, BTN_LEFT, state, time_msec);
+		cursor_button_release(seat, button, state, time_msec);
 		break;
 	}
 }

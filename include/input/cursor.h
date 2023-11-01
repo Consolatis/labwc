@@ -3,6 +3,7 @@
 #define LABWC_CURSOR_H
 
 #include <wlr/types/wlr_cursor.h>
+#include <wlr/types/wlr_input_device.h>
 #include <wlr/util/edges.h>
 #include "ssd.h"
 
@@ -119,7 +120,8 @@ void cursor_update_image(struct seat *seat);
 
 void cursor_init(struct seat *seat);
 void cursor_emulate_move_absolute(struct seat *seat, double x, double y, uint32_t time_msec);
-void cursor_emulate_button(struct seat *seat, enum wlr_button_state state, uint32_t time_msec);
+void cursor_emulate_button(struct seat *seat,
+	uint32_t button, enum wlr_button_state state, uint32_t time_msec);
 void cursor_finish(struct seat *seat);
 
 #endif /* LABWC_CURSOR_H */

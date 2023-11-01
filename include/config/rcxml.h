@@ -32,6 +32,12 @@ struct window_switcher_field {
 	struct wl_list link; /* struct rcxml.window_switcher.fields */
 };
 
+#define BUTTON_MAP_MAX 16
+struct button_map_entry {
+	uint32_t from;
+	uint32_t to;
+};
+
 struct rcxml {
 	char *config_dir;
 
@@ -69,6 +75,10 @@ struct rcxml {
 	long doubleclick_time;     /* in ms */
 	struct wl_list mousebinds; /* struct mousebind.link */
 	double scroll_factor;
+	struct tablet_config {
+		uint16_t button_map_count;
+		struct button_map_entry button_map[BUTTON_MAP_MAX];
+	} tablet;
 
 	/* libinput */
 	struct wl_list libinput_categories;
