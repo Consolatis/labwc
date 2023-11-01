@@ -600,11 +600,60 @@ enum_font_place(const char *place)
 	return FONT_PLACE_UNKNOWN;
 }
 
+
+/* TODO: This could be shared with config/mousebind.c */
+static uint32_t parse_button(const char *button)
+{
+	if (!strcasecmp(button, "Left")) {
+		return BTN_LEFT;
+	} else if (!strcasecmp(button, "Right")) {
+		return BTN_RIGHT;
+	} else if (!strcasecmp(button, "Middle")) {
+		return BTN_MIDDLE;
+	} else if (!strcasecmp(button, "Tip")) {
+		return BTN_TOOL_PEN;
+	} else if (!strcasecmp(button, "Stylus")) {
+		return BTN_STYLUS;
+	} else if (!strcasecmp(button, "Stylus2")) {
+		return BTN_STYLUS2;
+	} else if (!strcasecmp(button, "Stylus3")) {
+		return BTN_STYLUS3;
+	}
+	wlr_log(WLR_ERROR, "Invalid value for button: %s", button);
+	return 0;
+}
+
+static void
+add_tablet_button_mapping(uint32_t from, uint32_t to)
+{
+	struct button_map_entry *entry;
+	for (size_t i = 0; i < rc.tablet.button_map_count; i++) {
+		entry = &rc.tablet.button_map[i];
+		if (entry->from == from) {
+			entry->to = to;
+			wlr_log(WLR_INFO, "Overwriting button map for 0x%x with 0x%x", from, to);
+			return;
+		}
+	}
+	if (rc.tablet.button_map_count == BUTTON_MAP_MAX) {
+		wlr_log(WLR_ERROR,
+			"Failed to add button mapping: only supporting up to %u mappings",
+			BUTTON_MAP_MAX);
+		return;
+	}
+	wlr_log(WLR_INFO, "Adding button map for 0x%x with 0x%x", from, to);
+	entry = &rc.tablet.button_map[rc.tablet.button_map_count];
+	entry->from = from;
+	entry->to = to;
+	rc.tablet.button_map_count++;
+}
+
 static void
 entry(xmlNode *node, char *nodename, char *content)
 {
 	/* current <theme><font place=""></font></theme> */
 	static enum font_place font_place = FONT_PLACE_NONE;
+	static uint32_t button_map_to;
 
 	if (!nodename) {
 		return;
@@ -795,6 +844,21 @@ entry(xmlNode *node, char *nodename, char *content)
 		} else {
 			wlr_log(WLR_ERROR, "Invalid value for <resize popupShow />");
 		}
+	} else if (!strcasecmp(nodename, "map.graphicsTablet.input")) {
+		button_map_to = 0;
+	} else if (!strcasecmp(nodename, "button.map.graphicsTablet.input")) {
+		button_map_to = parse_button(content);
+	} else if (!strcasecmp(nodename, "from.map.graphicsTablet.input")) {
+		if (!button_map_to) {
+			wlr_log(WLR_ERROR, "Missing 'button' argument for graphicsTable mapping");
+			return;
+		}
+		uint32_t button_map_from = parse_button(content);
+		if (!button_map_from) {
+			wlr_log(WLR_ERROR, "Invalid value for <graphicsTablet><map from />");
+			return;
+		}
+		add_tablet_button_mapping(button_map_from, button_map_to);
 	}
 }
 
@@ -951,10 +1015,12 @@ rcxml_init(void)
 
 	rc.doubleclick_time = 500;
 	rc.scroll_factor = 1.0;
-	rc.tablet.button_map[0] = (struct button_map_entry){.from = BTN_TOOL_PEN, .to = BTN_LEFT };
-	rc.tablet.button_map[1] = (struct button_map_entry){.from = BTN_STYLUS, .to = BTN_RIGHT };
-	rc.tablet.button_map[2] = (struct button_map_entry){.from = BTN_STYLUS2, .to = BTN_MIDDLE };
-	rc.tablet.button_map_count = 3;
+
+	rc.tablet.button_map_count = 0;
+	add_tablet_button_mapping(BTN_TOOL_PEN, BTN_LEFT); /* Used for the pen tip */
+	add_tablet_button_mapping(BTN_STYLUS, BTN_RIGHT);
+	add_tablet_button_mapping(BTN_STYLUS2, BTN_MIDDLE);
+
 	rc.repeat_rate = 25;
 	rc.repeat_delay = 600;
 	rc.kb_numlock_enable = true;
