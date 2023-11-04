@@ -34,7 +34,16 @@ mousebind_button_from_str(const char *str, uint32_t *modifiers)
 		return BTN_RIGHT;
 	} else if (!strcasecmp(str, "Middle")) {
 		return BTN_MIDDLE;
+	} else if (!strcasecmp(str, "Tip")) {
+		return BTN_TOOL_PEN;
+	} else if (!strcasecmp(str, "Stylus")) {
+		return BTN_STYLUS;
+	} else if (!strcasecmp(str, "Stylus2")) {
+		return BTN_STYLUS2;
+	} else if (!strcasecmp(str, "Stylus3")) {
+		return BTN_STYLUS3;
 	}
+
 invalid:
 	wlr_log(WLR_ERROR, "unknown button (%s)", str);
 	return UINT32_MAX;

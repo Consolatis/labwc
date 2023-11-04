@@ -601,28 +601,6 @@ enum_font_place(const char *place)
 }
 
 
-/* TODO: This could be shared with config/mousebind.c */
-static uint32_t parse_button(const char *button)
-{
-	if (!strcasecmp(button, "Left")) {
-		return BTN_LEFT;
-	} else if (!strcasecmp(button, "Right")) {
-		return BTN_RIGHT;
-	} else if (!strcasecmp(button, "Middle")) {
-		return BTN_MIDDLE;
-	} else if (!strcasecmp(button, "Tip")) {
-		return BTN_TOOL_PEN;
-	} else if (!strcasecmp(button, "Stylus")) {
-		return BTN_STYLUS;
-	} else if (!strcasecmp(button, "Stylus2")) {
-		return BTN_STYLUS2;
-	} else if (!strcasecmp(button, "Stylus3")) {
-		return BTN_STYLUS3;
-	}
-	wlr_log(WLR_ERROR, "Invalid value for button: %s", button);
-	return 0;
-}
-
 static enum rotation
 parse_rotation(int value)
 {
@@ -864,17 +842,23 @@ entry(xmlNode *node, char *nodename, char *content)
 		} else {
 			wlr_log(WLR_ERROR, "Invalid value for <resize popupShow />");
 		}
+#if 0
+	} else if (!strcasecmp(nodename, "default.tablet")) {
+		tablet_load_defaults();
+#endif
 	} else if (!strcasecmp(nodename, "map.tablet")) {
-		button_map_from = 0;
+		button_map_from = UINT32_MAX;
 	} else if (!strcasecmp(nodename, "button.map.tablet")) {
-		button_map_from = parse_button(content);
+		uint32_t modifiers;
+		button_map_from = mousebind_button_from_str(content, &modifiers);
 	} else if (!strcasecmp(nodename, "to.map.tablet")) {
-		if (!button_map_from) {
+		if (button_map_from == UINT32_MAX) {
 			wlr_log(WLR_ERROR, "Missing 'button' argument for tablet mapping");
 			return;
 		}
-		uint32_t button_map_to = parse_button(content);
-		if (!button_map_to) {
+		uint32_t modifiers;
+		uint32_t button_map_to = mousebind_button_from_str(content, &modifiers);
+		if (button_map_to == UINT32_MAX) {
 			wlr_log(WLR_ERROR, "Invalid value for <tablet><map to />");
 			return;
 		}
