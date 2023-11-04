@@ -623,6 +623,26 @@ static uint32_t parse_button(const char *button)
 	return 0;
 }
 
+static enum rotation
+parse_rotation(int value)
+{
+	switch(value)
+	{
+		case 0:
+			return LAB_ROTATE_NONE;
+		case 90:
+			return LAB_ROTATE_90;
+		case 180:
+			return LAB_ROTATE_180;
+		case 270:
+			return LAB_ROTATE_270;
+		default:
+			wlr_log(WLR_ERROR, "Invalid rotation argument: %d", value);
+			break;
+	}
+	return LAB_ROTATE_NONE;
+}
+
 static void
 add_tablet_button_mapping(uint32_t from, uint32_t to)
 {
@@ -653,7 +673,7 @@ entry(xmlNode *node, char *nodename, char *content)
 {
 	/* current <theme><font place=""></font></theme> */
 	static enum font_place font_place = FONT_PLACE_NONE;
-	static uint32_t button_map_to;
+	static uint32_t button_map_from;
 
 	if (!nodename) {
 		return;
@@ -844,21 +864,23 @@ entry(xmlNode *node, char *nodename, char *content)
 		} else {
 			wlr_log(WLR_ERROR, "Invalid value for <resize popupShow />");
 		}
-	} else if (!strcasecmp(nodename, "map.graphicsTablet.input")) {
-		button_map_to = 0;
-	} else if (!strcasecmp(nodename, "button.map.graphicsTablet.input")) {
-		button_map_to = parse_button(content);
-	} else if (!strcasecmp(nodename, "from.map.graphicsTablet.input")) {
-		if (!button_map_to) {
-			wlr_log(WLR_ERROR, "Missing 'button' argument for graphicsTable mapping");
+	} else if (!strcasecmp(nodename, "map.tablet")) {
+		button_map_from = 0;
+	} else if (!strcasecmp(nodename, "button.map.tablet")) {
+		button_map_from = parse_button(content);
+	} else if (!strcasecmp(nodename, "to.map.tablet")) {
+		if (!button_map_from) {
+			wlr_log(WLR_ERROR, "Missing 'button' argument for tablet mapping");
 			return;
 		}
-		uint32_t button_map_from = parse_button(content);
-		if (!button_map_from) {
-			wlr_log(WLR_ERROR, "Invalid value for <graphicsTablet><map from />");
+		uint32_t button_map_to = parse_button(content);
+		if (!button_map_to) {
+			wlr_log(WLR_ERROR, "Invalid value for <tablet><map to />");
 			return;
 		}
 		add_tablet_button_mapping(button_map_from, button_map_to);
+	} else if (!strcasecmp(nodename, "rotate.tablet")) {
+		rc.tablet.rotate = parse_rotation(atoi(content));
 	}
 }
 

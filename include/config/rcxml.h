@@ -38,6 +38,13 @@ struct button_map_entry {
 	uint32_t to;
 };
 
+enum rotation {
+	LAB_ROTATE_NONE = 0,
+	LAB_ROTATE_90,
+	LAB_ROTATE_180,
+	LAB_ROTATE_270,
+};
+
 struct rcxml {
 	char *config_dir;
 
@@ -76,6 +83,7 @@ struct rcxml {
 	struct wl_list mousebinds; /* struct mousebind.link */
 	double scroll_factor;
 	struct tablet_config {
+		enum rotation rotate;
 		uint16_t button_map_count;
 		struct button_map_entry button_map[BUTTON_MAP_MAX];
 	} tablet;
