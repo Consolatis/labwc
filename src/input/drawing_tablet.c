@@ -7,6 +7,7 @@
 #include <wlr/util/log.h>
 #include "common/macros.h"
 #include "common/mem.h"
+#include "config/rcxml.h"
 #include "input/cursor.h"
 #include "input/drawing_tablet.h"
 
@@ -19,14 +20,41 @@ setup_pad(struct seat *seat, struct wlr_input_device *wlr_device)
 }
 
 static void
+adjust_for_rotation(enum rotation rotation, double *x, double *y)
+{
+	double tmp;
+	switch (rotation) {
+	case LAB_ROTATE_NONE:
+		break;
+	case LAB_ROTATE_90:
+		tmp = *x;
+		*x = 1.0 - *y;
+		*y = tmp;
+		break;
+	case LAB_ROTATE_180:
+		*x = 1.0 - *x;
+		*y = 1.0 - *y;
+		break;
+	case LAB_ROTATE_270:
+		tmp = *x;
+		*x = *y;
+		*y = 1.0 - tmp;
+		break;
+	}
+}
+
+static void
 handle_axis(struct wl_listener *listener, void *data)
 {
 	struct wlr_tablet_tool_axis_event *ev = data;
 	struct drawing_tablet *tablet = ev->tablet->data;
 	if (ev->updated_axes & (WLR_TABLET_TOOL_AXIS_X | WLR_TABLET_TOOL_AXIS_Y)) {
 		wlr_log(WLR_DEBUG, "Got new axis pos: %.10f,%.10f", ev->x, ev->y);
-		if (ev->x > 0.0f && ev->y > 0.0f) {
-			cursor_emulate_move_absolute(tablet->seat, ev->x, ev->y, ev->time_msec);
+		if (ev->x > 0.0 && ev->y > 0.0) {
+			double x = ev->x;
+			double y = ev->y;
+			adjust_for_rotation(rc.tablet.rotate, &x, &y);
+			cursor_emulate_move_absolute(tablet->seat, x, y, ev->time_msec);
 		} else {
 			wlr_log(WLR_DEBUG, "Blocking strange axis pos: %.10f, %.10f", ev->x, ev->y);
 		}
