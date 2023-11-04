@@ -54,7 +54,8 @@ handle_axis(struct wl_listener *listener, void *data)
 			double x = ev->x;
 			double y = ev->y;
 			adjust_for_rotation(rc.tablet.rotate, &x, &y);
-			cursor_emulate_move_absolute(tablet->seat, x, y, ev->time_msec);
+			cursor_emulate_move_absolute(tablet->seat, x, y,
+				&ev->tablet->base, ev->time_msec);
 		} else {
 			wlr_log(WLR_DEBUG, "Blocking strange axis pos: %.10f, %.10f", ev->x, ev->y);
 		}

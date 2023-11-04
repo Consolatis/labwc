@@ -1002,11 +1002,12 @@ cursor_button_release(struct seat *seat, uint32_t button,
 }
 
 void
-cursor_emulate_move_absolute(struct seat *seat, double x, double y, uint32_t time_msec)
+cursor_emulate_move_absolute(struct seat *seat, double x, double y,
+		struct wlr_input_device *device, uint32_t time_msec)
 {
 	double lx, ly;
 	wlr_cursor_absolute_to_layout_coords(seat->cursor,
-		NULL, x, y, &lx, &ly);
+		device, x, y, &lx, &ly);
 
 	double dx = lx - seat->cursor->x;
 	double dy = ly - seat->cursor->y;

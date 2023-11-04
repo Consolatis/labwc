@@ -261,7 +261,15 @@ new_tablet(struct seat *seat, struct wlr_input_device *dev)
 	struct input *input = znew(*input);
 	input->wlr_input_device = dev;
 	drawing_tablet_setup_handlers(seat, dev);
-	//wlr_cursor_attach_input_device(seat->cursor, dev);
+
+	struct wlr_output *output = output_by_name(seat->server, "HDMI-A-1");
+	if (output) {
+		wlr_log(WLR_INFO, "map tablet to output %s\n", output->name);
+		wlr_cursor_attach_input_device(seat->cursor, dev);
+		wlr_cursor_map_input_to_output(seat->cursor, dev, output);
+		wlr_cursor_map_input_to_region(seat->cursor, dev, NULL);
+	}
+
 	return input;
 }
 
