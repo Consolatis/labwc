@@ -340,18 +340,23 @@ item_destroy(struct menuitem *item)
  * for backward compatibility with old openbox-menu generators. It has the same
  * function and <command>
  *
- * The match_glob() wildcard allows for nested menus giving nodenames with
- * ...menu.menu... or ...menu.menu.menu... and so on.
+ * The following nodenames support CDATA.
+ *  - command.action.item.*menu.openbox_menu
+ *  - execute.action.item.*menu.openbox_menu
+ *  - command.action.item.openbox_pipe_menu
+ *  - execute.action.item.openbox_pipe_menu
+ *  - command.action.item.*menu.openbox_pipe_menu
+ *  - execute.action.item.*menu.openbox_pipe_menu
+ *
+ * The *menu allows nested menus with nodenames such as ...menu.menu... or
+ * ...menu.menu.menu... and so on. We could use match_glob() for all of the
+ * above but it seems simpler to just check the first three fields.
  */
 static bool
 nodename_supports_cdata(char *nodename)
 {
-	return match_glob("command.action.item.*menu.openbox_menu", nodename)
-		|| match_glob("execute.action.item.*menu.openbox_menu", nodename)
-		|| match_glob("command.action.item.openbox_pipe_menu", nodename)
-		|| match_glob("execute.action.item.openbox_pipe_menu", nodename)
-		|| match_glob("command.action.item.*menu.openbox_pipe_menu", nodename)
-		|| match_glob("execute.action.item.*menu.openbox_pipe_menu", nodename);
+	return !strncmp("command.action.", nodename, 15)
+		|| !strncmp("execute.action.", nodename, 15);
 }
 
 static void
@@ -798,7 +803,10 @@ nullify_item_pointing_to_this_menu(struct menu *menu)
 		wl_list_for_each(item, &iter->menuitems, link) {
 			if (item->submenu == menu) {
 				item->submenu = NULL;
-				return;
+				/*
+				 * Let's not return early here in case we have
+				 * multiple items pointing to the same menu.
+				 */
 			}
 		}
 	}
