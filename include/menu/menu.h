@@ -30,6 +30,7 @@ struct menu_scene {
 struct menuitem {
 	struct wl_list actions;
 	char *execute;
+	char *id; /* needed for pipemenus */
 	struct menu *parent;
 	struct menu *submenu;
 	bool selectable;

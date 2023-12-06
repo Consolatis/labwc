@@ -35,9 +35,25 @@ static struct menu *current_menu;
 
 /* TODO: split this whole file into parser.c and actions.c*/
 
+static bool
+is_unique_id(struct server *server, const char *id)
+{
+	struct menu *menu;
+	wl_list_for_each(menu, &server->menus, link) {
+		if (!strcmp(menu->id, id)) {
+			return false;
+		}
+	}
+	return true;
+}
+
 static struct menu *
 menu_create(struct server *server, const char *id, const char *label)
 {
+	if (!is_unique_id(server, id)) {
+		wlr_log(WLR_ERROR, "menu id %s already exists", id);
+	}
+
 	struct menu *menu = znew(*menu);
 	wl_list_append(&server->menus, &menu->link);
 
@@ -321,6 +337,8 @@ item_destroy(struct menuitem *item)
 	wl_list_remove(&item->link);
 	action_list_free(&item->actions);
 	wlr_scene_node_destroy(&item->tree->node);
+	free(item->execute);
+	free(item->id);
 	free(item);
 }
 
@@ -434,11 +452,12 @@ handle_menu_element(xmlNode *n, struct server *server)
 	char *execute = (char *)xmlGetProp(n, (const xmlChar *)"execute");
 	char *id = (char *)xmlGetProp(n, (const xmlChar *)"id");
 
-	if (execute && label) {
+	if (execute && label && id) {
 		wlr_log(WLR_INFO, "pipemenu '%s - %s'", execute, label);
 		current_item = item_create(current_menu, label, /* arrow */ true);
 		current_item_action = NULL;
-		current_item->execute = strdup(execute);
+		current_item->execute = xstrdup(execute);
+		current_item->id = xstrdup(id);
 	} else if ((label && id) || (id && nr_parents(n) == 2)) {
 		/*
 		 * (label && id) refers to <menu id="" label=""> which is an
@@ -931,6 +950,11 @@ menu_open_root(struct menu *menu, int x, int y)
 static void
 parse_pipemenu(struct menuitem *item)
 {
+	if (!is_unique_id(item->parent->server, item->id)) {
+		wlr_log(WLR_ERROR, "duplicate id '%s'; abort pipemenu", item->id);
+		return;
+	}
+
 	FILE *fp = popen(item->execute, "r");
 	if (!fp) {
 		return;
@@ -940,17 +964,14 @@ parse_pipemenu(struct menuitem *item)
 	/*
 	 * Pipemenus do not contain a toplevel <menu> element so we have to
 	 * create that first `struct menu`.
-	 *
-	 * We just use for the 'execute' command as a menu id. If this creates a
-	 * name-space issue, we'll have to uniquify them.
 	 */
 	++menu_level;
-	current_menu = menu_create(server, item->execute, NULL);
+	current_menu = menu_create(server, item->id, NULL);
 	current_menu->is_pipemenu = true;
 	wlr_log(WLR_INFO, "parse pipemenu '%s'", item->execute);
 	parse(server, fp);
 	current_menu = current_menu->parent;
-	item->submenu = menu_get_by_id(server, item->execute);
+	item->submenu = menu_get_by_id(server, item->id);
 	--menu_level;
 
 	pclose(fp);
