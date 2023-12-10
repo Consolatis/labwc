@@ -294,11 +294,15 @@ button_xbm_load(const char *button_name, const char *alt_name,
 			}
 		}
 	}
-	if (!pixmap.data) {
+	if (!pixmap.data && fallback_button) {
 		pixmap = parse_xbm_builtin(fallback_button, 6);
 	}
 
-	/* Create buffer with free_on_destroy being true */
-	*buffer = buffer_create_wrap(pixmap.data, pixmap.width, pixmap.height,
-		pixmap.width * 4, true);
+	if (pixmap.data) {
+		/* Create buffer with free_on_destroy being true */
+		*buffer = buffer_create_wrap(pixmap.data, pixmap.width, pixmap.height,
+			pixmap.width * 4, true);
+	} else {
+		*buffer = NULL;
+	}
 }
