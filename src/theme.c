@@ -7,6 +7,7 @@
 
 #define _POSIX_C_SOURCE 200809L
 #include "config.h"
+#include <assert.h>
 #include <cairo.h>
 #include <ctype.h>
 #include <drm_fourcc.h>
@@ -55,6 +56,82 @@ drop(struct lab_data_buffer **buffer)
 		wlr_buffer_drop(&(*buffer)->base);
 		*buffer = NULL;
 	}
+}
+
+static cairo_surface_t *
+get_surface(struct lab_data_buffer *buffer)
+{
+	/* Handle CAIRO_FORMAT_ARGB32 buffers */
+	if (buffer->cairo) {
+		wlr_log(WLR_ERROR, "QQQ CAIRO_FORMAT_ARGB32");
+		return cairo_get_target(buffer->cairo);
+	}
+
+	/* Handle DRM_FORMAT_ARGB8888 buffers */
+	int w = buffer->unscaled_width;
+	int h = buffer->unscaled_height;
+	wlr_log(WLR_ERROR, "QQQ DRM_FORMAT_ARGB8888 @%dx%d", w, h);
+	cairo_surface_t *surface =
+		cairo_image_surface_create(CAIRO_FORMAT_ARGB32, w, h);
+	if (!surface) {
+		wlr_log(WLR_ERROR, "XXX bad surface");
+		return NULL;
+	}
+	unsigned char *data = cairo_image_surface_get_data(surface);
+	cairo_surface_flush(surface);
+	//memcpy(data, buffer->data, w * h * buffer->stride);
+	memcpy(data, buffer->data, h * buffer->stride);
+	//free(data);
+	cairo_surface_mark_dirty(surface);
+	return surface;
+}
+
+static void
+maybe_create_hover_fallback(struct theme *theme, struct lab_data_buffer **hover_buffer,
+		struct lab_data_buffer *icon_buffer)
+{
+	assert(icon_buffer);
+	assert(!*hover_buffer);
+
+	cairo_surface_t *icon = get_surface(icon_buffer);
+	int icon_width = cairo_image_surface_get_width(icon);
+	int icon_height = cairo_image_surface_get_height(icon);
+
+	int width = 26; // SSD_BUTTON_WIDTH // FIXME: need to somehow respect rounded corners
+	int height = theme->title_height;
+
+	wlr_log(WLR_ERROR, "\tgot icon size w=%d, h=%d", icon_width, icon_height);
+
+	*hover_buffer = buffer_create_cairo(width, height, 1, true);
+
+	cairo_t *cairo = (*hover_buffer)->cairo;
+	cairo_surface_t *surf = cairo_get_target(cairo);
+
+	/* Background */
+	//cairo_set_operator(cairo, CAIRO_OPERATOR_CLEAR);
+	//cairo_paint(cairo);
+	//set_cairo_color(cairo, theme->window_active_title_bg_color);
+	//cairo_rectangle(cairo, 0, 0, width, height);
+	//cairo_fill(cairo);
+
+	// FIXME: requires downscaling if necessary
+	cairo_set_source_surface(cairo, icon,
+		(width - icon_width) / 2, (height - icon_height) / 2);
+	//cairo_paint_with_alpha(cairo, 0.5);
+	cairo_paint(cairo);
+
+	/* non-multiplied alpha */
+	//set_cairo_color(cairo, (float[4]) { 0.15f, 0.15f, 0.15f, 0.3f});
+	set_cairo_color(cairo, (float[4]) { 0.5f, 0.5f, 0.5f, 0.3f});
+	cairo_rectangle(cairo, 0, 0, width, height);
+	cairo_fill(cairo);
+
+	wlr_log(WLR_ERROR, "\tgot result w=%d, h=%d",
+		cairo_image_surface_get_width(surf),
+		cairo_image_surface_get_height(surf));
+
+
+	cairo_surface_flush(surf);
 }
 
 /*
@@ -211,6 +288,34 @@ load_buttons(struct theme *theme)
 				b->no_fallback_button ? NULL : b->fallback_button,
 				b->inactive.rgba);
 		}
+	}
+
+	/* Add fallbacks for missing hover overlays */
+	for (size_t i = 0; i < ARRAY_SIZE(buttons); i++) {
+		struct button *button = &buttons[i];
+		if (*button->active.buffer) {
+			continue;
+		}
+
+		/* Given foo_hover, copy foo */
+		char *buf = strdup(button->name);
+		size_t len = strlen(buf);
+		buf[len-6] = '\0';
+		wlr_log(WLR_ERROR, "\tsearching for %s", buf);
+		for (size_t j = 0; j < ARRAY_SIZE(buttons); j++) {
+			struct button *tmp = &buttons[j];
+			if (!strcmp(buf, tmp->name)) {
+				wlr_log(WLR_ERROR, "\tfound icon %s", tmp->name);
+				// FIXME: what if NULL?
+				maybe_create_hover_fallback(theme, button->active.buffer, *tmp->active.buffer);
+				maybe_create_hover_fallback(theme, button->inactive.buffer, *tmp->inactive.buffer);
+				//icon = get_surface(*tmp->active.buffer);
+				//wlr_log(WLR_ERROR, "\tgot cairo surface %p", icon);
+				break;
+			}
+		}
+		free(buf);
+
 	}
 }
 
