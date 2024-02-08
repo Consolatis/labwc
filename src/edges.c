@@ -199,9 +199,15 @@ validate_output_edges(struct border *valid_edges,
 			view, target, output, validator, VIEW_EDGE_DOWN);
 }
 
-/* Test if parts of the current view is covered by the remaining space in the region */
 static bool
-is_visible(struct view *view, pixman_region32_t *region)
+is_visible(struct view *view)
+{
+	return view->edges_visible != 0;
+}
+
+/* Test if parts of the current view is covered by the remaining space in the region */
+static void
+subtract_view_from_space(struct view *view, pixman_region32_t *region)
 {
 
 	// FIXME: not sure if pixman_box32_t x2,y2 is inclusive or exclusive
@@ -214,8 +220,21 @@ is_visible(struct view *view, pixman_region32_t *region)
 	};
 
 	/* We only treat views that are not overlapping the remaining space as invisible */
-	if (pixman_region32_contains_rectangle(region, &view_rect) == PIXMAN_REGION_OUT) {
-		return false;
+	pixman_region_overlap_t overlap = pixman_region32_contains_rectangle(region, &view_rect);
+
+	switch (overlap) {
+	case PIXMAN_REGION_IN:
+		view->edges_visible = WLR_EDGE_TOP | WLR_EDGE_RIGHT
+			| WLR_EDGE_BOTTOM | WLR_EDGE_LEFT;
+		break;
+	case PIXMAN_REGION_OUT:
+		view->edges_visible = 0;
+		return;
+	case PIXMAN_REGION_PART:
+		// FIXME: actually calculate visbility here, intersect required?
+		view->edges_visible = WLR_EDGE_TOP | WLR_EDGE_RIGHT
+			| WLR_EDGE_BOTTOM | WLR_EDGE_LEFT;
+		break;
 	}
 
 	/* Subtract the view geometry in the region for the next check */
@@ -223,18 +242,11 @@ is_visible(struct view *view, pixman_region32_t *region)
 	pixman_region32_init_rects(&view_region, &view_rect, 1);
 	pixman_region32_subtract(region, region, &view_region);
 	pixman_region32_fini(&view_region);
-	return true;
 }
 
 void
-edges_find_neighbors(struct border *nearest_edges, struct view *view,
-		struct wlr_box target, struct output *output,
-		edge_validator_t validator, bool use_pending)
+edges_calculate_visibility(struct server *server, struct view *ignored_view)
 {
-	assert(view);
-	assert(validator);
-	assert(nearest_edges);
-
 	/*
 	 * The region stores the available output layout space
 	 * and subtracts the window geometries in reverse rendering
@@ -268,17 +280,45 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 	 * layout which could cover actual invisible areas
 	 * in case the output resolutions differ.
 	 */
-	struct output *_output;
+	struct output *output;
 	struct wlr_box layout_box;
-	wl_list_for_each(_output, &view->server->outputs, link) {
-		if (!output_is_usable(_output)) {
+	wl_list_for_each(output, &server->outputs, link) {
+		if (!output_is_usable(output)) {
 			continue;
 		}
-		wlr_output_layout_get_box(view->server->output_layout,
-			_output->wlr_output, &layout_box);
+		wlr_output_layout_get_box(server->output_layout,
+			output->wlr_output, &layout_box);
 		pixman_region32_union_rect(&region, &region,
 			layout_box.x, layout_box.y, layout_box.width, layout_box.height);
 	}
+
+	struct view *view;
+	enum lab_view_criteria criteria = LAB_VIEW_CRITERIA_ALWAYS_ON_TOP;
+	for_each_view(view, &server->views, criteria) {
+		if (view == ignored_view || view->minimized) {
+			continue;
+		}
+		subtract_view_from_space(view, &region);
+	}
+
+	criteria = LAB_VIEW_CRITERIA_CURRENT_WORKSPACE | LAB_VIEW_CRITERIA_NO_ALWAYS_ON_TOP;
+	for_each_view(view, &server->views, criteria) {
+		if (view == ignored_view || view->minimized) {
+			continue;
+		}
+		subtract_view_from_space(view, &region);
+	}
+	pixman_region32_fini(&region);
+}
+
+void
+edges_find_neighbors(struct border *nearest_edges, struct view *view,
+		struct wlr_box target, struct output *output,
+		edge_validator_t validator, bool use_pending)
+{
+	assert(view);
+	assert(validator);
+	assert(nearest_edges);
 
 	struct border view_edges = { 0 };
 	struct border target_edges = { 0 };
@@ -295,7 +335,7 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 			continue;
 		}
 
-		if (!is_visible(v, &region)) {
+		if (!is_visible(v)) {
 			wlr_log(WLR_INFO, "skipping invisible view");
 			continue;
 		}
@@ -331,7 +371,6 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		validate_edges(nearest_edges, view_edges,
 			target_edges, win_edges, validator);
 	}
-	pixman_region32_fini(&region);
 }
 
 void

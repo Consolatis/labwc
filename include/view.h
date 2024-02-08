@@ -7,6 +7,7 @@
 #include <stdint.h>
 #include <wayland-util.h>
 #include <wlr/util/box.h>
+#include <wlr/util/edges.h>
 #include <xkbcommon/xkbcommon.h>
 
 #define LAB_MIN_VIEW_WIDTH  100
@@ -166,6 +167,7 @@ struct view {
 	bool tearing_hint;
 	bool visible_on_all_workspaces;
 	enum view_edge tiled;
+	enum wlr_edges edges_visible;
 	bool inhibits_keybinds;
 	xkb_layout_index_t keyboard_layout;
 

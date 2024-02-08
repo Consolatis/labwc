@@ -3,11 +3,15 @@
 #define LABWC_EDGES_H
 
 #include <limits.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include "common/macros.h"
 
 struct border;
 struct output;
+struct server;
 struct view;
+struct wlr_box;
 
 static inline int
 clipped_add(int a, int b)
@@ -116,4 +120,5 @@ void edges_adjust_resize_geom(struct view *view, struct border edges,
 
 bool edges_traverse_edge(struct edge current, struct edge target, struct edge edge);
 
+void edges_calculate_visibility(struct server *server, struct view *ignored_view);
 #endif /* LABWC_EDGES_H */
