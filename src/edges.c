@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <assert.h>
 #include <limits.h>
+#include <wlr/util/edges.h>
 #include <wlr/util/box.h>
 #include "common/border.h"
 #include "common/macros.h"
@@ -207,10 +208,8 @@ is_visible(struct view *view)
 
 /* Test if parts of the current view is covered by the remaining space in the region */
 static void
-subtract_view_from_space(struct view *view, pixman_region32_t *region)
+subtract_view_from_space(struct view *view, pixman_region32_t *available)
 {
-
-	// FIXME: not sure if pixman_box32_t x2,y2 is inclusive or exclusive
 	struct wlr_box view_size = ssd_max_extents(view);
 	pixman_box32_t view_rect = {
 		.x1 = view_size.x,
@@ -219,8 +218,8 @@ subtract_view_from_space(struct view *view, pixman_region32_t *region)
 		.y2 = view_size.y + view_size.height
 	};
 
-	/* We only treat views that are not overlapping the remaining space as invisible */
-	pixman_region_overlap_t overlap = pixman_region32_contains_rectangle(region, &view_rect);
+	pixman_region_overlap_t overlap =
+		pixman_region32_contains_rectangle(available, &view_rect);
 
 	switch (overlap) {
 	case PIXMAN_REGION_IN:
@@ -230,17 +229,40 @@ subtract_view_from_space(struct view *view, pixman_region32_t *region)
 	case PIXMAN_REGION_OUT:
 		view->edges_visible = 0;
 		return;
-	case PIXMAN_REGION_PART:
-		// FIXME: actually calculate visbility here, intersect required?
-		view->edges_visible = WLR_EDGE_TOP | WLR_EDGE_RIGHT
-			| WLR_EDGE_BOTTOM | WLR_EDGE_LEFT;
+	case PIXMAN_REGION_PART:;
+		pixman_region32_t intersection;
+		pixman_region32_init(&intersection);
+		pixman_region32_intersect_rect(&intersection, available,
+			view_size.x, view_size.y,
+			view_size.width, view_size.height);
+
+		int nrects;
+		const pixman_box32_t *rects =
+			pixman_region32_rectangles(&intersection, &nrects);
+
+		view->edges_visible = 0;
+		for (int i = 0; i < nrects; i++) {
+			if (rects[i].x1 == view_rect.x1) {
+				view->edges_visible |= WLR_EDGE_LEFT;
+			}
+			if (rects[i].y1 == view_rect.y1) {
+				view->edges_visible |= WLR_EDGE_TOP;
+			}
+			if (rects[i].x2 == view_rect.x2) {
+				view->edges_visible |= WLR_EDGE_RIGHT;
+			}
+			if (rects[i].y2 == view_rect.y2) {
+				view->edges_visible |= WLR_EDGE_BOTTOM;
+			}
+		}
+		pixman_region32_fini(&intersection);
 		break;
 	}
 
-	/* Subtract the view geometry in the region for the next check */
+	/* Subtract the view geometry from the available region for the next check */
 	pixman_region32_t view_region;
 	pixman_region32_init_rects(&view_region, &view_rect, 1);
-	pixman_region32_subtract(region, region, &view_region);
+	pixman_region32_subtract(available, available, &view_region);
 	pixman_region32_fini(&view_region);
 }
 
@@ -256,18 +278,6 @@ edges_calculate_visibility(struct server *server, struct view *ignored_view)
 	 * If there is no overlap of its geometry and the remaining
 	 * region it must be completely covered by other windows.
 	 *
-	 * FIXME: always-on-top views are an outliner.
-	 *       We likely need two for_each_window
-	 *       loops here, first one with a
-	 *       always-on-top only critera and the
-	 *       second with a current-workspace but
-	 *       no always-on-top criteria.
-	 *
-	 * TODO: This is just a proof-of-concept implementation,
-	 *       We might be able to calculate the visibility in
-	 *       advance when starting the move / resize in
-	 *       interactive_begin() and only use some v->visible
-	 *       boolean here.
 	 */
 	pixman_region32_t region;
 	pixman_region32_init(&region);
@@ -292,6 +302,7 @@ edges_calculate_visibility(struct server *server, struct view *ignored_view)
 			layout_box.x, layout_box.y, layout_box.width, layout_box.height);
 	}
 
+	/* This must be kept in sync with the rendering order */
 	struct view *view;
 	enum lab_view_criteria criteria = LAB_VIEW_CRITERIA_ALWAYS_ON_TOP;
 	for_each_view(view, &server->views, criteria) {
