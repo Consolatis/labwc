@@ -199,6 +199,33 @@ validate_output_edges(struct border *valid_edges,
 			view, target, output, validator, VIEW_EDGE_DOWN);
 }
 
+/* Test if parts of the current view is covered by the remaining space in the region */
+static bool
+is_visible(struct view *view, pixman_region32_t *region)
+{
+
+	// FIXME: not sure if pixman_box32_t x2,y2 is inclusive or exclusive
+	struct wlr_box view_size = ssd_max_extents(view);
+	pixman_box32_t view_rect = {
+		.x1 = view_size.x,
+		.x2 = view_size.x + view_size.width,
+		.y1 = view_size.y,
+		.y2 = view_size.y + view_size.height
+	};
+
+	/* We only treat views that are not overlapping the remaining space as invisible */
+	if (pixman_region32_contains_rectangle(region, &view_rect) == PIXMAN_REGION_OUT) {
+		return false;
+	}
+
+	/* Subtract the view geometry in the region for the next check */
+	pixman_region32_t view_region;
+	pixman_region32_init_rects(&view_region, &view_rect, 1);
+	pixman_region32_subtract(region, region, &view_region);
+	pixman_region32_fini(&view_region);
+	return true;
+}
+
 void
 edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		struct wlr_box target, struct output *output,
@@ -207,6 +234,51 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 	assert(view);
 	assert(validator);
 	assert(nearest_edges);
+
+	/*
+	 * The region stores the available output layout space
+	 * and subtracts the window geometries in reverse rendering
+	 * order, e.g. a window rendered on top is subtracted first.
+	 *
+	 * This allows to detect if a window is actually visible.
+	 * If there is no overlap of its geometry and the remaining
+	 * region it must be completely covered by other windows.
+	 *
+	 * FIXME: always-on-top views are an outliner.
+	 *       We likely need two for_each_window
+	 *       loops here, first one with a
+	 *       always-on-top only critera and the
+	 *       second with a current-workspace but
+	 *       no always-on-top criteria.
+	 *
+	 * TODO: This is just a proof-of-concept implementation,
+	 *       We might be able to calculate the visibility in
+	 *       advance when starting the move / resize in
+	 *       interactive_begin() and only use some v->visible
+	 *       boolean here.
+	 */
+	pixman_region32_t region;
+	pixman_region32_init(&region);
+
+	/*
+	 * Initialize the region with each individual output.
+	 *
+	 * If we were to use NULL for the reference output we
+	 * would get a single combined wlr_box of the whole
+	 * layout which could cover actual invisible areas
+	 * in case the output resolutions differ.
+	 */
+	struct output *_output;
+	struct wlr_box layout_box;
+	wl_list_for_each(_output, &view->server->outputs, link) {
+		if (!output_is_usable(_output)) {
+			continue;
+		}
+		wlr_output_layout_get_box(view->server->output_layout,
+			_output->wlr_output, &layout_box);
+		pixman_region32_union_rect(&region, &region,
+			layout_box.x, layout_box.y, layout_box.width, layout_box.height);
+	}
 
 	struct border view_edges = { 0 };
 	struct border target_edges = { 0 };
@@ -220,6 +292,11 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 	struct view *v;
 	for_each_view(v, &view->server->views, LAB_VIEW_CRITERIA_CURRENT_WORKSPACE) {
 		if (v == view || v->minimized || !output_is_usable(v->output)) {
+			continue;
+		}
+
+		if (!is_visible(v, &region)) {
+			wlr_log(WLR_INFO, "skipping invisible view");
 			continue;
 		}
 
@@ -254,6 +331,7 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		validate_edges(nearest_edges, view_edges,
 			target_edges, win_edges, validator);
 	}
+	pixman_region32_fini(&region);
 }
 
 void
