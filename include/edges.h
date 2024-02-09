@@ -106,7 +106,7 @@ void edges_adjust_geom(struct view *view, struct border edges,
 
 void edges_find_neighbors(struct border *nearest_edges, struct view *view,
 	struct wlr_box target, struct output *output,
-	edge_validator_t validator, bool use_pending);
+	edge_validator_t validator, bool use_pending, bool ignore_hidden);
 
 void edges_find_outputs(struct border *nearest_edges, struct view *view,
 	struct wlr_box target, struct output *output,

@@ -337,7 +337,7 @@ edges_calculate_visibility(struct server *server, struct view *ignored_view)
 void
 edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		struct wlr_box target, struct output *output,
-		edge_validator_t validator, bool use_pending)
+		edge_validator_t validator, bool use_pending, bool ignore_hidden)
 {
 	assert(view);
 	assert(validator);
@@ -354,11 +354,16 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 
 	struct view *v;
 	for_each_view(v, &view->server->views, LAB_VIEW_CRITERIA_CURRENT_WORKSPACE) {
-		if (v == view || !output_is_usable(v->output)) {
+		if (v == view || v->minimized || !output_is_usable(v->output)) {
 			continue;
 		}
 
-		if (v->minimized || v->edges_visible == 0) {
+		uint32_t edges_visible = ignore_hidden ?
+			WLR_EDGE_TOP | WLR_EDGE_LEFT
+				| WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT :
+			v->edges_visible;
+
+		if (edges_visible == 0) {
 			wlr_log(WLR_INFO, "skipping invisible view");
 			continue;
 		}
@@ -384,17 +389,17 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		struct border border = ssd_get_margin(v->ssd);
 
 		struct border win_edges = {
-			.top = (v->edges_visible & WLR_EDGE_TOP) ?
+			.top = (edges_visible & WLR_EDGE_TOP) ?
 				v->current.y - border.top :
 				INT_MIN,
-			.left = (v->edges_visible & WLR_EDGE_LEFT) ?
+			.left = (edges_visible & WLR_EDGE_LEFT) ?
 				v->current.x - border.left :
 				INT_MIN,
-			.bottom = (v->edges_visible & WLR_EDGE_BOTTOM) ?
+			.bottom = (edges_visible & WLR_EDGE_BOTTOM) ?
 				view_effective_height(v, /* use_pending */ false)
 					+ v->current.y + border.bottom :
 				INT_MAX,
-			.right = (v->edges_visible & WLR_EDGE_RIGHT) ?
+			.right = (edges_visible & WLR_EDGE_RIGHT) ?
 				v->current.x + v->current.width + border.right :
 				INT_MAX,
 		};
