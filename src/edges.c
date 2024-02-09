@@ -9,6 +9,7 @@
 #include "edges.h"
 #include "labwc.h"
 #include "view.h"
+#include "node.h"
 
 static void
 edges_for_target_geometry(struct border *edges, struct view *view,
@@ -266,6 +267,38 @@ subtract_view_from_space(struct view *view, pixman_region32_t *available)
 	pixman_region32_fini(&view_region);
 }
 
+static void
+subtract_node_tree(struct wlr_scene_tree *tree, pixman_region32_t *available,
+		struct view *ignored_view)
+{
+	struct view *view;
+	struct wlr_scene_node *node;
+	struct node_descriptor *node_desc;
+	wl_list_for_each_reverse(node, &tree->children, link) {
+		if (!node->enabled) {
+			/*
+			 * This skips everything that is not being
+			 * rendered, including minimized / unmapped
+			 * windows and workspaces other than the
+			 * current one.
+			 */
+			continue;
+		}
+
+		node_desc = node->data;
+		if (node_desc && node_desc->type == LAB_NODE_DESC_VIEW) {
+			view = node_view_from_node(node);
+			if (view != ignored_view) {
+				subtract_view_from_space(view, available);
+			}
+		} else if (node->type == WLR_SCENE_NODE_TREE) {
+			subtract_node_tree(wlr_scene_tree_from_node(node),
+				available, ignored_view);
+		}
+
+	}
+}
+
 void
 edges_calculate_visibility(struct server *server, struct view *ignored_view)
 {
@@ -302,23 +335,8 @@ edges_calculate_visibility(struct server *server, struct view *ignored_view)
 			layout_box.x, layout_box.y, layout_box.width, layout_box.height);
 	}
 
-	/* This must be kept in sync with the rendering order */
-	struct view *view;
-	enum lab_view_criteria criteria = LAB_VIEW_CRITERIA_ALWAYS_ON_TOP;
-	for_each_view(view, &server->views, criteria) {
-		if (view == ignored_view || view->minimized) {
-			continue;
-		}
-		subtract_view_from_space(view, &region);
-	}
+	subtract_node_tree(&server->scene->tree, &region, ignored_view);
 
-	criteria = LAB_VIEW_CRITERIA_CURRENT_WORKSPACE | LAB_VIEW_CRITERIA_NO_ALWAYS_ON_TOP;
-	for_each_view(view, &server->views, criteria) {
-		if (view == ignored_view || view->minimized) {
-			continue;
-		}
-		subtract_view_from_space(view, &region);
-	}
 	pixman_region32_fini(&region);
 }
 
