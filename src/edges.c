@@ -358,10 +358,9 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 			continue;
 		}
 
-		uint32_t edges_visible = ignore_hidden ?
+		uint32_t edges_visible = ignore_hidden ? v->edges_visible :
 			WLR_EDGE_TOP | WLR_EDGE_LEFT
-				| WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT :
-			v->edges_visible;
+				| WLR_EDGE_BOTTOM | WLR_EDGE_RIGHT;
 
 		if (edges_visible == 0) {
 			wlr_log(WLR_INFO, "skipping invisible view");
