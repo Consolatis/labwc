@@ -201,12 +201,6 @@ validate_output_edges(struct border *valid_edges,
 			view, target, output, validator, VIEW_EDGE_DOWN);
 }
 
-static bool
-is_visible(struct view *view)
-{
-	return view->edges_visible != 0;
-}
-
 /* Test if parts of the current view is covered by the remaining space in the region */
 static void
 subtract_view_from_space(struct view *view, pixman_region32_t *available)
@@ -360,11 +354,11 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 
 	struct view *v;
 	for_each_view(v, &view->server->views, LAB_VIEW_CRITERIA_CURRENT_WORKSPACE) {
-		if (v == view || v->minimized || !output_is_usable(v->output)) {
+		if (v == view || !output_is_usable(v->output)) {
 			continue;
 		}
 
-		if (!is_visible(v)) {
+		if (v->minimized || v->edges_visible == 0) {
 			wlr_log(WLR_INFO, "skipping invisible view");
 			continue;
 		}
@@ -390,11 +384,19 @@ edges_find_neighbors(struct border *nearest_edges, struct view *view,
 		struct border border = ssd_get_margin(v->ssd);
 
 		struct border win_edges = {
-			.top = v->current.y - border.top,
-			.left = v->current.x - border.left,
-			.bottom = v->current.y + border.bottom
-				+ view_effective_height(v, /* use_pending */ false),
-			.right = v->current.x + v->current.width + border.right,
+			.top = (v->edges_visible & WLR_EDGE_TOP) ?
+				v->current.y - border.top :
+				INT_MIN,
+			.left = (v->edges_visible & WLR_EDGE_LEFT) ?
+				v->current.x - border.left :
+				INT_MIN,
+			.bottom = (v->edges_visible & WLR_EDGE_BOTTOM) ?
+				view_effective_height(v, /* use_pending */ false)
+					+ v->current.y + border.bottom :
+				INT_MAX,
+			.right = (v->edges_visible & WLR_EDGE_RIGHT) ?
+				v->current.x + v->current.width + border.right :
+				INT_MAX,
 		};
 
 		validate_edges(nearest_edges, view_edges,
