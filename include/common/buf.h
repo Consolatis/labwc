@@ -45,4 +45,11 @@ void buf_init(struct buf *s);
  */
 void buf_add(struct buf *s, const char *data);
 
+/**
+ * buf_add_char - add single char to C string buffer
+ * @s: buffer
+ * @data: char to be added
+ */
+void buf_add_char(struct buf *s, char data);
+
 #endif /* LABWC_BUF_H */

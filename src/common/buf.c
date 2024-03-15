@@ -4,8 +4,8 @@
 #include "common/buf.h"
 #include "common/mem.h"
 
-static void
-buf_add_one_char(struct buf *s, char ch)
+void
+buf_add_char(struct buf *s, char ch)
 {
 	if (s->alloc <= s->len + 1) {
 		s->alloc = s->alloc * 3 / 2 + 16;
@@ -24,7 +24,7 @@ buf_expand_tilde(struct buf *s)
 		if (s->buf[i] == '~') {
 			buf_add(&new, getenv("HOME"));
 		} else {
-			buf_add_one_char(&new, s->buf[i]);
+			buf_add_char(&new, s->buf[i]);
 		}
 	}
 	free(s->buf);
@@ -76,7 +76,7 @@ buf_expand_shell_variables(struct buf *s)
 				buf_add(&new, p);
 			}
 		} else {
-			buf_add_one_char(&new, s->buf[i]);
+			buf_add_char(&new, s->buf[i]);
 		}
 	}
 	free(environment_variable.buf);
