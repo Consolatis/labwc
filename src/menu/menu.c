@@ -19,6 +19,7 @@
 #include "common/nodename.h"
 #include "common/scaled_font_buffer.h"
 #include "common/scene-helpers.h"
+#include "common/spawn.h"
 #include "common/string-helpers.h"
 #include "labwc.h"
 #include "menu/menu.h"
@@ -958,7 +959,8 @@ struct pipe_context {
 	struct menuitem *item;
 	struct buf buf;
 	struct wl_event_source *event_src;
-	FILE *subprocess;
+	pid_t pid;
+	int pipe_fd;
 };
 
 static int
@@ -1045,7 +1047,7 @@ out:
 
 clean_up:
 	wl_event_source_remove(ctx->event_src);
-	pclose(ctx->subprocess);
+	spawn_piped_close(ctx->pid, ctx->pipe_fd);
 	free(ctx->buf.buf);
 	free(ctx);
 	return 0;
@@ -1059,19 +1061,22 @@ parse_pipemenu(struct menuitem *item)
 		return;
 	}
 
-	FILE *fp = popen(item->execute, "r");
-	if (!fp) {
+	int pipe_fd = 0;
+	pid_t pid = spawn_piped(item->execute, &pipe_fd);
+	if (pid <= 0) {
+		wlr_log(WLR_ERROR, "Failed to spawn pipe menu process %s", item->execute);
 		return;
 	}
 
 	struct pipe_context *ctx = znew(*ctx);
 	ctx->server = item->parent->server;
 	ctx->item = item;
-	ctx->subprocess = fp;
+	ctx->pid = pid;
+	ctx->pipe_fd = pipe_fd;
 	buf_init(&ctx->buf);
 
 	ctx->event_src = wl_event_loop_add_fd(ctx->server->wl_event_loop,
-		fileno(fp), WL_EVENT_READABLE, handle_pipemenu_readable, ctx);
+		pipe_fd, WL_EVENT_READABLE, handle_pipemenu_readable, ctx);
 }
 
 static void
