@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <libxml/parser.h>
 #include <libxml/tree.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,6 +26,8 @@
 #include "menu/menu.h"
 #include "node.h"
 #include "theme.h"
+
+#define PIPEMENU_TIMEOUT_IN_MS 4000
 
 /* state-machine variables for processing <item></item> */
 static bool in_item;
@@ -958,10 +961,19 @@ struct pipe_context {
 	struct server *server;
 	struct menuitem *item;
 	struct buf buf;
-	struct wl_event_source *event_src;
+	struct wl_event_source *event_read;
+	struct wl_event_source *event_timeout;
 	pid_t pid;
 	int pipe_fd;
 };
+
+static int
+handle_pipemenu_timeout(void *_ctx)
+{
+	struct pipe_context *ctx = _ctx;
+	kill(ctx->pid, SIGTERM);
+	return 0;
+}
 
 static int
 handle_pipemenu_readable(int fd, uint32_t mask, void *_ctx)
@@ -1046,7 +1058,8 @@ out:
 	ctx->item->parent->selection.menu = ctx->item->submenu;
 
 clean_up:
-	wl_event_source_remove(ctx->event_src);
+	wl_event_source_remove(ctx->event_read);
+	wl_event_source_remove(ctx->event_timeout);
 	spawn_piped_close(ctx->pid, ctx->pipe_fd);
 	free(ctx->buf.buf);
 	free(ctx);
@@ -1075,8 +1088,12 @@ parse_pipemenu(struct menuitem *item)
 	ctx->pipe_fd = pipe_fd;
 	buf_init(&ctx->buf);
 
-	ctx->event_src = wl_event_loop_add_fd(ctx->server->wl_event_loop,
+	ctx->event_read = wl_event_loop_add_fd(ctx->server->wl_event_loop,
 		pipe_fd, WL_EVENT_READABLE, handle_pipemenu_readable, ctx);
+
+	ctx->event_timeout = wl_event_loop_add_timer(ctx->server->wl_event_loop,
+		handle_pipemenu_timeout, ctx);
+	wl_event_source_timer_update(ctx->event_timeout, PIPEMENU_TIMEOUT_IN_MS);
 }
 
 static void
