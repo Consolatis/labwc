@@ -551,13 +551,27 @@ xml_tree_walk(xmlNode *node, struct server *server)
 	}
 }
 
+static bool
+parse_buf(struct server *server, struct buf *buf)
+{
+	xmlDoc *d = xmlParseMemory(buf->buf, buf->len);
+	if (!d) {
+		wlr_log(WLR_ERROR, "xmlParseMemory()");
+		return false;
+	}
+	xml_tree_walk(xmlDocGetRootElement(d), server);
+	xmlFreeDoc(d);
+	xmlCleanupParser();
+	return true;
+}
+
 /*
  * @stream can come from either of the following:
  *   - fopen() in the case of reading a file such as menu.xml
  *   - popen() when processing pipemenus
  */
 static void
-parse(struct server *server, FILE *stream)
+parse_stream(struct server *server, FILE *stream)
 {
 	char *line = NULL;
 	size_t len = 0;
@@ -572,15 +586,7 @@ parse(struct server *server, FILE *stream)
 		buf_add(&b, line);
 	}
 	free(line);
-	xmlDoc *d = xmlParseMemory(b.buf, b.len);
-	if (!d) {
-		wlr_log(WLR_ERROR, "xmlParseMemory()");
-		goto err;
-	}
-	xml_tree_walk(xmlDocGetRootElement(d), server);
-	xmlFreeDoc(d);
-	xmlCleanupParser();
-err:
+	parse_buf(server, &b);
 	free(b.buf);
 }
 
@@ -600,7 +606,7 @@ parse_xml(const char *filename, struct server *server)
 		return;
 	}
 	wlr_log(WLR_INFO, "read menu file %s", buf);
-	parse(server, stream);
+	parse_stream(server, stream);
 	fclose(stream);
 }
 
@@ -947,6 +953,104 @@ menu_open_root(struct menu *menu, int x, int y)
 	menu->server->input_mode = LAB_INPUT_STATE_MENU;
 }
 
+struct pipe_context {
+	struct server *server;
+	struct menuitem *item;
+	struct buf buf;
+	struct wl_event_source *event_src;
+	FILE *subprocess;
+};
+
+static int
+handle_pipemenu_readable(int fd, uint32_t mask, void *_ctx)
+{
+	struct pipe_context *ctx = _ctx;
+	char data[4096];
+	ssize_t size;
+
+	do {
+		/* leave space for terminating NULL byte */
+		size = read(fd, data, sizeof(data) - 1);
+	} while (size == -1 && errno == EINTR);
+
+	if (size == -1) {
+		perror("Failed to read from pipemenu");
+		wlr_log(WLR_ERROR, "Failed to read data for pipe menu");
+		goto clean_up;
+	}
+	wlr_log(WLR_INFO, "read %li bytes of data", size);
+	if (size) {
+		data[size] = '\0';
+		buf_add(&ctx->buf, data);
+		return 0;
+	}
+
+	wlr_log(WLR_INFO, "parsing xml:");
+	wlr_log(WLR_INFO, "----------------------------");
+	wlr_log(WLR_INFO, "%s", ctx->buf.buf);
+	wlr_log(WLR_INFO, "----------------------------");
+
+	/* Everything up to clean_up is basically copy pasted */
+
+	/*
+	 * Pipemenus do not contain a toplevel <menu> element so we have to
+	 * create that first `struct menu`.
+	 */
+	menu_level++;
+	current_menu = menu_create(ctx->server, ctx->item->id, NULL);
+	current_menu->is_pipemenu = true;
+	wlr_log(WLR_INFO, "parse pipemenu '%s'", ctx->item->execute);
+	parse_buf(ctx->server, &ctx->buf);
+	current_menu = current_menu->parent;
+	ctx->item->submenu = menu_get_by_id(ctx->server, ctx->item->id);
+	menu_level--;
+
+	if (!ctx->item->submenu) {
+		goto out;
+	}
+
+	/*
+	 * TODO: refactor validate() and post_processing() to only
+	 * operate from current point onwards
+	 */
+
+	/* Set menu-widths before configuring */
+	post_processing(ctx->server);
+
+	/*
+	 * TODO:
+	 * (1) Combine this with the code in get_submenu_position()
+	 *     and/or menu_configure()
+	 * (2) Take into account menu_overlap_{x,y}
+	 */
+	enum menu_align align = ctx->item->parent->align;
+	int x = ctx->item->parent->scene_tree->node.x;
+	int y = ctx->item->parent->scene_tree->node.y + ctx->item->tree->node.y;
+	if (align & LAB_MENU_OPEN_RIGHT) {
+		x += ctx->item->parent->size.width;
+	}
+	menu_configure(ctx->item->submenu, x, y, align);
+
+	validate(ctx->server);
+
+	/* Sync the triggering view */
+	ctx->item->submenu->triggered_by_view = ctx->item->parent->triggered_by_view;
+	/* Ensure the submenu has its parent set correctly */
+	ctx->item->submenu->parent = ctx->item->parent;
+	/* And open the new submenu tree */
+	wlr_scene_node_set_enabled(
+		&ctx->item->submenu->scene_tree->node, true);
+out:
+	ctx->item->parent->selection.menu = ctx->item->submenu;
+
+clean_up:
+	wl_event_source_remove(ctx->event_src);
+	pclose(ctx->subprocess);
+	free(ctx->buf.buf);
+	free(ctx);
+	return 0;
+}
+
 static void
 parse_pipemenu(struct menuitem *item)
 {
@@ -959,22 +1063,15 @@ parse_pipemenu(struct menuitem *item)
 	if (!fp) {
 		return;
 	}
-	struct server *server = item->parent->server;
 
-	/*
-	 * Pipemenus do not contain a toplevel <menu> element so we have to
-	 * create that first `struct menu`.
-	 */
-	++menu_level;
-	current_menu = menu_create(server, item->id, NULL);
-	current_menu->is_pipemenu = true;
-	wlr_log(WLR_INFO, "parse pipemenu '%s'", item->execute);
-	parse(server, fp);
-	current_menu = current_menu->parent;
-	item->submenu = menu_get_by_id(server, item->id);
-	--menu_level;
+	struct pipe_context *ctx = znew(*ctx);
+	ctx->server = item->parent->server;
+	ctx->item = item;
+	ctx->subprocess = fp;
+	buf_init(&ctx->buf);
 
-	pclose(fp);
+	ctx->event_src = wl_event_loop_add_fd(ctx->server->wl_event_loop,
+		fileno(fp), WL_EVENT_READABLE, handle_pipemenu_readable, ctx);
 }
 
 static void
@@ -1003,6 +1100,7 @@ menu_process_item_selection(struct menuitem *item)
 	/* Pipemenu */
 	if (item->execute) {
 		parse_pipemenu(item);
+		return;
 		if (!item->submenu) {
 			goto out;
 		}
