@@ -19,6 +19,7 @@
 #include "window-rules.h"
 #include "workspaces.h"
 #include "xwayland.h"
+#include "plugins.h"
 
 #if HAVE_XWAYLAND
 #include <wlr/xwayland.h>
@@ -2083,6 +2084,7 @@ view_update_title(struct view *view)
 	}
 	ssd_update_title(view->ssd);
 	wlr_foreign_toplevel_handle_v1_set_title(view->toplevel.handle, title);
+	plugins_view_title_changed(view);
 }
 
 void

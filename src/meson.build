@@ -15,6 +15,7 @@ labwc_sources = files(
   'output.c',
   'output-virtual.c',
   'placement.c',
+  'plugins.c',
   'regions.c',
   'resistance.c',
   'seat.c',

@@ -29,6 +29,7 @@
 #include "layers.h"
 #include "menu/menu.h"
 #include "output-virtual.h"
+#include "plugins.h"
 #include "regions.h"
 #include "resize_indicator.h"
 #include "theme.h"
@@ -73,6 +74,7 @@ handle_sighup(int signal, void *data)
 	session_environment_init();
 	reload_config_and_theme();
 	output_virtual_update_fallback(g_server);
+	plugins_reconfigure();
 	return 0;
 }
 
@@ -530,6 +532,9 @@ server_init(struct server *server)
 #if HAVE_XWAYLAND
 	xwayland_server_init(server, compositor);
 #endif
+
+	plugins_init(server);
+
 	/* used when handling SIGHUP */
 	g_server = server;
 }
@@ -566,6 +571,8 @@ server_start(struct server *server)
 void
 server_finish(struct server *server)
 {
+	plugins_finish();
+
 #if HAVE_XWAYLAND
 	xwayland_server_finish(server);
 #endif
