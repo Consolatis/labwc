@@ -8,6 +8,14 @@
 #include "plugins.h"
 #include "view.h"
 
+/*
+ * These ensure that we don't try to access
+ * undefined memory in the module supplied
+ * plugin struct.
+ */
+#define HOOK_SUPPORTED(plugin, hook) ((plugin)->api_version >= (HOOK_ ## hook ## _SINCE_VERSION))
+#define HOOK_VIEW_TITLE_CHANGE_SINCE_VERSION 1
+
 struct _handle {
 	void *handle;
 	struct wl_list link;    /* handles */
@@ -141,8 +149,13 @@ plugins_view_title_changed(struct view *view)
 	const char *title = view_get_string_prop(view, "title");
 	struct labwc_plugin *plugin;
 	wl_list_for_each(plugin, &plugins, labwc_link) {
-		if (plugin->hooks.view_title_changed) {
+		if (HOOK_SUPPORTED(plugin, VIEW_TITLE_CHANGE)
+				&& plugin->hooks.view_title_changed) {
 			plugin->hooks.view_title_changed(view, title);
+		} else if (!HOOK_SUPPORTED(plugin, VIEW_TITLE_CHANGE)) {
+			wlr_log(WLR_ERROR,
+				"title change hook not supported by plugin api version %d",
+				plugin->api_version);
 		}
 	}
 }

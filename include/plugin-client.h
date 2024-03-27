@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <wayland-util.h>
 
+#define LABWC_PLUGIN_API_VERSION 1
+
 struct view;
 struct labwc_plugin;
 

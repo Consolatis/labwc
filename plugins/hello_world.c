@@ -30,7 +30,7 @@ on_view_title_changed(const struct view *view, const char *title)
 }
 
 static struct labwc_plugin self = {
-	.api_version = 0,
+	.api_version = LABWC_PLUGIN_API_VERSION,
 	.name = "Hello World",
 	.on = {
 		.init = plugin_on_init,
