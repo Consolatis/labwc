@@ -1,3 +1,4 @@
+#include <assert.h>
 #include "action.h"
 #include "common/scaled_font_buffer.h"
 #include "common/macros.h"
@@ -133,6 +134,10 @@ prompt_update(void)
 void
 prompt_show(struct prompt prompt)
 {
+	assert(prompt.label_prompt);
+	assert(prompt.label_yes);
+	assert(prompt.label_no);
+
 	ctx.prompt = prompt;
 	prompt_update();
 	wlr_scene_node_set_enabled(&ctx.tree->node, true);

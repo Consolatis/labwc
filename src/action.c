@@ -669,21 +669,19 @@ run_if_action(struct view *view, struct server *server, struct action *action)
 		}
 	}
 
-	if (!strcmp(branch, "then")) {
-		const char *prompt_text = action_get_str(action, "prompt_text", NULL);
-		if (prompt_text) {
-			struct prompt prompt = {
-				.server = server,
-				.view = view,
-				.label_prompt = prompt_text,
-				.label_yes = action_get_str(action, "prompt_yes", NULL),
-				.label_no = action_get_str(action, "prompt_no", NULL),
-				.branch_then = action_get_actionlist(action, "then"),
-				.branch_else = action_get_actionlist(action, "else"),
-			};
-			prompt_show(prompt);
-			return;
-		}
+	const char *prompt_text = action_get_str(action, "prompt_text", NULL);
+	if (!strcmp(branch, "then") && prompt_text) {
+		struct prompt prompt = {
+			.server = server,
+			.view = view,
+			.label_prompt = prompt_text,
+			.label_yes = action_get_str(action, "prompt_yes", "Yes"),
+			.label_no = action_get_str(action, "prompt_no", "No"),
+			.branch_then = action_get_actionlist(action, "then"),
+			.branch_else = action_get_actionlist(action, "else"),
+		};
+		prompt_show(prompt);
+		return;
 	}
 
 	actions = action_get_actionlist(action, branch);
