@@ -45,6 +45,7 @@ static bool in_window_rules;
 static bool in_action_query;
 static bool in_action_then_branch;
 static bool in_action_else_branch;
+static bool in_action_prompt;
 
 static struct usable_area_override *current_usable_area_override;
 static struct keybind *current_keybind;
@@ -268,6 +269,19 @@ fill_region(char *nodename, char *content)
 		wlr_log(WLR_ERROR, "Unexpected data in region parser: %s=\"%s\"",
 			nodename, content);
 	}
+}
+
+static void
+fill_prompt(char *nodename, char *content, struct action *action)
+{
+	if (!content) {
+		return;
+	}
+
+	string_truncate_at_pattern(nodename, ".keybind.keyboard");
+	string_truncate_at_pattern(nodename, ".mousebind.context.mouse");
+
+	action_arg_from_xml_node(action, nodename, content);
 }
 
 static void
@@ -760,6 +774,9 @@ entry(xmlNode *node, char *nodename, char *content)
 		} else if (in_action_else_branch) {
 			fill_child_action(nodename, content,
 				current_keybind_action, "else");
+		} else if (in_action_prompt) {
+			fill_prompt(nodename, content,
+				current_keybind_action);
 		} else {
 			fill_keybind(nodename, content);
 		}
@@ -774,6 +791,9 @@ entry(xmlNode *node, char *nodename, char *content)
 		} else if (in_action_else_branch) {
 			fill_child_action(nodename, content,
 				current_mousebind_action, "else");
+		} else if (in_action_prompt) {
+			fill_prompt(nodename, content,
+				current_mousebind_action);
 		} else {
 			fill_mousebind(nodename, content);
 		}
@@ -1088,6 +1108,12 @@ xml_tree_walk(xmlNode *node)
 			in_window_rules = true;
 			traverse(n);
 			in_window_rules = false;
+			continue;
+		}
+		if (!strcasecmp((char *)n->name, "prompt")) {
+			in_action_prompt = true;
+			traverse(n);
+			in_action_prompt = false;
 			continue;
 		}
 		if (!strcasecmp((char *)n->name, "query")) {

@@ -18,6 +18,7 @@
 #include "menu/menu.h"
 #include "output-virtual.h"
 #include "placement.h"
+#include "prompt.h"
 #include "regions.h"
 #include "ssd.h"
 #include "view.h"
@@ -414,6 +415,20 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 			goto cleanup;
 		}
 		break;
+	case ACTION_TYPE_IF:
+		if (!strcmp(argument, "prompt")) {
+			action_arg_add_str(action, "prompt_text", content);
+			goto cleanup;
+		}
+		if (!strcmp(argument, "yes.prompt")) {
+			action_arg_add_str(action, "prompt_yes", content);
+			goto cleanup;
+		}
+		if (!strcmp(argument, "no.prompt")) {
+			action_arg_add_str(action, "prompt_no", content);
+			goto cleanup;
+		}
+		break;
 	}
 
 	wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s'",
@@ -651,6 +666,23 @@ run_if_action(struct view *view, struct server *server, struct action *action)
 				branch = "then";
 				break;
 			}
+		}
+	}
+
+	if (!strcmp(branch, "then")) {
+		const char *prompt_text = action_get_str(action, "prompt_text", NULL);
+		if (prompt_text) {
+			struct prompt prompt = {
+				.server = server,
+				.view = view,
+				.label_prompt = prompt_text,
+				.label_yes = action_get_str(action, "prompt_yes", NULL),
+				.label_no = action_get_str(action, "prompt_no", NULL),
+				.branch_then = action_get_actionlist(action, "then"),
+				.branch_else = action_get_actionlist(action, "else"),
+			};
+			prompt_show(prompt);
+			return;
 		}
 	}
 
