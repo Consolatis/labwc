@@ -1,6 +1,8 @@
 #ifndef LABWC_PROMPT_H
 #define LABWC_PROMPT_H
 
+struct wlr_scene_node;
+
 struct prompt {
 	struct view *view;
 	struct server *server;
@@ -12,5 +14,6 @@ struct prompt {
 };
 
 void prompt_show(struct prompt prompt);
+void prompt_handle_button(struct wlr_scene_node *node);
 
 #endif /* LABWC_PROMPT_H */

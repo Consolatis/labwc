@@ -20,6 +20,7 @@
 #include "labwc.h"
 #include "layers.h"
 #include "menu/menu.h"
+#include "prompt.h"
 #include "regions.h"
 #include "resistance.h"
 #include "ssd.h"
@@ -948,6 +949,10 @@ cursor_button_press(struct seat *seat, uint32_t button,
 	struct server *server = seat->server;
 	struct cursor_context ctx = get_cursor_context(server);
 
+	if (ctx.type == LAB_SSD_PROMPT_BTN) {
+		return;
+	}
+
 	/* Determine closest resize edges in case action is Resize */
 	uint32_t resize_edges = cursor_get_resize_edges(seat->cursor, &ctx);
 
@@ -1024,6 +1029,11 @@ cursor_button_release(struct seat *seat, uint32_t button,
 	struct server *server = seat->server;
 	struct cursor_context ctx = get_cursor_context(server);
 	struct wlr_surface *pressed_surface = seat->pressed.surface;
+
+	if (ctx.type == LAB_SSD_PROMPT_BTN) {
+		prompt_handle_button(ctx.node);
+		return;
+	}
 
 	seat_reset_pressed(seat);
 

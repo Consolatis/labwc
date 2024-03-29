@@ -316,6 +316,10 @@ get_cursor_context(struct server *server)
 				ret.view = ssd_button_get_view(button);
 				return ret;
 			}
+			case LAB_NODE_DESC_PROMPT_BUTTON:
+				ret.node = node;
+				ret.type = LAB_SSD_PROMPT_BTN;
+				return ret;
 			case LAB_NODE_DESC_LAYER_SURFACE:
 				ret.node = node;
 				ret.type = LAB_SSD_LAYER_SURFACE;
