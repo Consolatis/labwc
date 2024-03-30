@@ -292,19 +292,6 @@ render_osd(struct server *server, cairo_t *cairo, int w, int h,
 
 	cairo_surface_t *surf = cairo_get_target(cairo);
 
-	/* Draw background */
-	set_cairo_color(cairo, theme->osd_bg_color);
-	cairo_rectangle(cairo, 0, 0, w, h);
-	cairo_fill(cairo);
-
-	/* Draw border */
-	set_cairo_color(cairo, theme->osd_border_color);
-	struct wlr_fbox fbox = {
-		.width = w,
-		.height = h,
-	};
-	draw_cairo_border(cairo, fbox, theme->osd_border_width);
-
 	/* Set up text rendering */
 	set_cairo_color(cairo, theme->osd_label_text_color);
 	PangoLayout *layout = pango_cairo_create_layout(cairo);
@@ -472,7 +459,9 @@ display_osd(struct output *output, struct wl_array *views)
 	if (output->osd_buffer) {
 		wlr_buffer_drop(&output->osd_buffer->base);
 	}
-	output->osd_buffer = buffer_create_cairo(w, h, scale, true);
+	output->osd_buffer = create_osd_background(w, h, scale,
+		theme->osd_bg_color, theme->osd_border_color,
+		theme->osd_border_width);
 	if (!output->osd_buffer) {
 		wlr_log(WLR_ERROR, "Failed to allocate cairo buffer for the window switcher");
 		return;

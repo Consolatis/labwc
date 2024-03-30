@@ -80,27 +80,15 @@ _osd_update(struct server *server)
 		if (!output_is_usable(output)) {
 			continue;
 		}
-		struct lab_data_buffer *buffer = buffer_create_cairo(width, height,
-			output->wlr_output->scale, true);
+
+		struct lab_data_buffer *buffer = create_osd_background(width, height,
+			output->wlr_output->scale, theme->osd_bg_color,
+			theme->osd_border_color, theme->osd_border_width);
 		if (!buffer) {
 			wlr_log(WLR_ERROR, "Failed to allocate buffer for workspace OSD");
 			continue;
 		}
-
 		cairo = buffer->cairo;
-
-		/* Background */
-		set_cairo_color(cairo, theme->osd_bg_color);
-		cairo_rectangle(cairo, 0, 0, width, height);
-		cairo_fill(cairo);
-
-		/* Border */
-		set_cairo_color(cairo, theme->osd_border_color);
-		struct wlr_fbox fbox = {
-			.width = width,
-			.height = height,
-		};
-		draw_cairo_border(cairo, fbox, theme->osd_border_width);
 
 		/* Boxes */
 		uint16_t x;

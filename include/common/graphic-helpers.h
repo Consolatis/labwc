@@ -57,4 +57,8 @@ struct surface_context {
 struct surface_context get_cairo_surface_from_lab_data_buffer(
 	struct lab_data_buffer *buffer);
 
+struct lab_data_buffer *create_osd_background(int width, int height,
+	double scale, float bg_color[4],float border_color[4],
+	int border_width);
+
 #endif /* LABWC_GRAPHIC_HELPERS_H */

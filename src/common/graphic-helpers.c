@@ -81,6 +81,34 @@ draw_cairo_border(cairo_t *cairo, struct wlr_fbox fbox, double line_width)
 	cairo_restore(cairo);
 }
 
+struct lab_data_buffer *
+create_osd_background(int width, int height, double scale,
+		float bg_color[4],float border_color[4], int border_width)
+{
+	struct lab_data_buffer *buffer = buffer_create_cairo(
+		width, height, scale, /* free_on_destroy */ true);
+	if (!buffer) {
+		return NULL;
+	}
+
+	cairo_t *cairo = buffer->cairo;
+
+	/* Background */
+	set_cairo_color(cairo, bg_color);
+	cairo_rectangle(cairo, 0, 0, width, height);
+	cairo_fill(cairo);
+
+	/* Border */
+	set_cairo_color(cairo, border_color);
+	struct wlr_fbox fbox = {
+		.width = width,
+		.height = height,
+	};
+	draw_cairo_border(cairo, fbox, border_width);
+
+	return buffer;
+}
+
 /* Sets the cairo color. Splits the single color channels */
 void
 set_cairo_color(cairo_t *cairo, const float *c)
