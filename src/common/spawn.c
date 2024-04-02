@@ -25,11 +25,20 @@ reset_signals_and_limits(void)
 	signal(SIGPIPE, SIG_DFL);
 }
 
-static void
+bool
 set_cloexec(int fd)
 {
 	int flags = fcntl(fd, F_GETFD);
-	fcntl(fd, F_SETFD, flags | FD_CLOEXEC);
+	if (flags == -1) {
+		wlr_log(WLR_ERROR, "Unable to set the CLOEXEC flag: fnctl failed");
+		return false;
+	}
+	flags = flags | FD_CLOEXEC;
+	if (fcntl(fd, F_SETFD, flags) == -1) {
+		wlr_log(WLR_ERROR, "Unable to set the CLOEXEC flag: fnctl failed");
+		return false;
+	}
+	return true;
 }
 
 void

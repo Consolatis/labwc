@@ -4,6 +4,8 @@
 
 #include <sys/types.h>
 
+bool set_cloexec(int fd);
+
 /**
  * spawn_async_no_shell - execute asynchronously
  * @command: command to be executed

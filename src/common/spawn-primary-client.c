@@ -34,6 +34,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include <wlr/util/log.h>
+#include "common/spawn.h"
 #include "common/spawn-primary-client.h"
 #include "labwc.h"
 
@@ -49,22 +50,6 @@ sigchld_handler(int fd, uint32_t mask, void *data)
 	}
 	wl_display_terminate(server->wl_display);
 	return 0;
-}
-
-static bool
-set_cloexec(int fd)
-{
-	int flags = fcntl(fd, F_GETFD);
-	if (flags == -1) {
-		wlr_log(WLR_ERROR, "Unable to set the CLOEXEC flag: fnctl failed");
-		return false;
-	}
-	flags = flags | FD_CLOEXEC;
-	if (fcntl(fd, F_SETFD, flags) == -1) {
-		wlr_log(WLR_ERROR, "Unable to set the CLOEXEC flag: fnctl failed");
-		return false;
-	}
-	return true;
 }
 
 bool
