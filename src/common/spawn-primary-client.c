@@ -75,9 +75,8 @@ spawn_primary_client(struct server *server, const char *command,
 
 	pid_t pid = fork();
 	if (!pid) {
-		sigset_t set;
-		sigemptyset(&set);
-		sigprocmask(SIG_SETMASK, &set, NULL);
+		reset_signals_and_limits();
+
 		close(fd[0]);
 		execvp(argv[0], argv);
 		wlr_log_errno(WLR_ERROR, "Failed to spawn primary client");

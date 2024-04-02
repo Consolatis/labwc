@@ -12,7 +12,7 @@
 #include "common/spawn.h"
 #include "common/fd_util.h"
 
-static void
+void
 reset_signals_and_limits(void)
 {
 	restore_nofile_limit();

@@ -4,6 +4,7 @@
 
 #include <sys/types.h>
 
+void reset_signals_and_limits(void);
 bool set_cloexec(int fd);
 
 /**
