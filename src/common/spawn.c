@@ -12,7 +12,7 @@
 #include "common/spawn.h"
 #include "common/fd_util.h"
 
-void
+static void
 reset_signals_and_limits(void)
 {
 	restore_nofile_limit();
@@ -25,7 +25,7 @@ reset_signals_and_limits(void)
 	signal(SIGPIPE, SIG_DFL);
 }
 
-bool
+static bool
 set_cloexec(int fd)
 {
 	int flags = fcntl(fd, F_GETFD);
@@ -86,6 +86,41 @@ spawn_async_no_shell(char const *command)
 	waitpid(child, NULL, 0);
 out:
 	g_strfreev(argv);
+}
+
+pid_t
+spawn_primary_client(const char *command)
+{
+	assert(command);
+
+	GError *err = NULL;
+	gchar **argv = NULL;
+
+	/* Use glib's shell-parse to mimic Openbox's behaviour */
+	g_shell_parse_argv((gchar *)command, NULL, &argv, &err);
+	if (err) {
+		g_message("%s", err->message);
+		g_error_free(err);
+		return -1;
+	}
+
+	pid_t child = fork();
+	switch (child) {
+	case -1:
+		wlr_log_errno(WLR_ERROR, "Failed to fork");
+		g_strfreev(argv);
+		return -1;
+	case 0:
+		/* child */
+		close(STDIN_FILENO);
+		reset_signals_and_limits();
+		execvp(argv[0], argv);
+		wlr_log_errno(WLR_ERROR, "Failed to execute primary client %s", command);
+		_exit(1);
+	default:
+		g_strfreev(argv);
+		return child;
+	}
 }
 
 pid_t

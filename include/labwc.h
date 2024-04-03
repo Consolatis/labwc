@@ -349,6 +349,8 @@ struct server {
 
 	struct menu *menu_current;
 	struct wl_list menus;
+
+	pid_t primary_client_pid;
 };
 
 #define LAB_NR_LAYERS (4)
@@ -499,7 +501,7 @@ void new_tearing_hint(struct wl_listener *listener, void *data);
 
 void server_init(struct server *server);
 void server_start(struct server *server);
-void server_finish(struct server *server, pid_t primary_client_pid);
+void server_finish(struct server *server);
 
 /* Updates onscreen display 'alt-tab' buffer */
 void osd_update(struct server *server);

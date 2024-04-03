@@ -8,7 +8,6 @@
 #include "common/font.h"
 #include "common/mem.h"
 #include "common/spawn.h"
-#include "common/spawn-primary-client.h"
 #include "config/session.h"
 #include "labwc.h"
 #include "theme.h"
@@ -179,13 +178,11 @@ main(int argc, char *argv[])
 	menu_init(&server);
 
 	/* Start session-manager if one is specified by -S|--session */
-	struct wl_event_source *sigchld_source = NULL;
-	pid_t primary_client_pid = 0;
 	if (primary_client) {
-		bool ret = spawn_primary_client(&server, primary_client,
-			&primary_client_pid, &sigchld_source);
-		if (!ret) {
-			wlr_log(WLR_ERROR, "fatal error with primary client");
+		server.primary_client_pid = spawn_primary_client(primary_client);
+		if (server.primary_client_pid < 0) {
+			wlr_log(WLR_ERROR, "fatal error starting primary client: %s",
+				primary_client);
 			goto out;
 		}
 	}
@@ -200,7 +197,7 @@ main(int argc, char *argv[])
 out:
 	session_shutdown(&server);
 
-	server_finish(&server, primary_client_pid);
+	server_finish(&server);
 
 	menu_finish(&server);
 	theme_finish(&theme);
