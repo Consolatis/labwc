@@ -153,8 +153,8 @@ lab_wlr_scene_output_commit(struct wlr_scene_output *scene_output)
 	struct output *output = wlr_output->data;
 	bool wants_magnification = output_nearest_to_cursor(output->server) == output;
 
-	if (!wlr_output->needs_frame && !wants_magnification &&
-			!pixman_region32_not_empty(&scene_output->damage_ring.current)) {
+	if (!wlr_output->needs_frame && !pixman_region32_not_empty(
+			&scene_output->damage_ring.current)) {
 		return false;
 	}
 	if (!wlr_scene_output_build_state(scene_output, state, NULL)) {
