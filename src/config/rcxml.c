@@ -147,6 +147,8 @@ fill_window_rule(char *nodename, char *content)
 		current_window_rule->title = xstrdup(content);
 	} else if (!strcasecmp(nodename, "matchOnce")) {
 		set_bool(content, &current_window_rule->match_once);
+	} else if (!strcasecmp(nodename, "rootOnly")) {
+		set_property(content, &current_window_rule->root_only);
 
 	/* Event */
 	} else if (!strcmp(nodename, "event")) {
@@ -1493,7 +1495,7 @@ validate(void)
 	/* Window-rule criteria */
 	struct window_rule *rule, *rule_tmp;
 	wl_list_for_each_safe(rule, rule_tmp, &rc.window_rules, link) {
-		if (!rule->identifier && !rule->title) {
+		if (!rule->identifier && !rule->title && !rule->root_only) {
 			wlr_log(WLR_ERROR, "Deleting rule %p as it has no criteria", rule);
 			rule_destroy(rule);
 		}

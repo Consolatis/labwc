@@ -67,10 +67,15 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
 			return false;
 		}
 		return match_glob(rule->title, title);
-	} else {
-		wlr_log(WLR_ERROR, "rule has no identifier or title\n");
-		return false;
 	}
+
+	if (rule->root_only) {
+		return (view == view->impl->get_root(view))
+			== (rule->root_only == LAB_PROP_TRUE);
+	}
+
+	wlr_log(WLR_ERROR, "rule has no matching criteria\n");
+	return false;
 }
 
 void
