@@ -43,6 +43,7 @@ view_impl_map(struct view *view)
 	if (ret == LAB_PROP_TRUE) {
 		if (view->toplevel.handle) {
 			wlr_foreign_toplevel_handle_v1_destroy(view->toplevel.handle);
+			view->toplevel.handle = NULL;
 		}
 	}
 
