@@ -268,7 +268,7 @@ bool
 view_is_focusable(struct view *view)
 {
 	assert(view);
-	if (!view->surface) {
+	if (!view->impl->is_focusable || !view->impl->is_focusable(view)) {
 		return false;
 	}
 	if (view_wants_focus(view) != VIEW_WANTS_FOCUS_ALWAYS) {

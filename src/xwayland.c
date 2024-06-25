@@ -912,6 +912,7 @@ static const struct view_impl xwayland_view_impl = {
 	.has_strut_partial = xwayland_view_has_strut_partial,
 	.contains_window_type = xwayland_view_contains_window_type,
 	.get_pid = xwayland_view_get_pid,
+	.is_focusable = view_impl_is_focusable,
 };
 
 void

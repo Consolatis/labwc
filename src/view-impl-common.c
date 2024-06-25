@@ -8,6 +8,12 @@
 #include "view-impl-common.h"
 #include "window-rules.h"
 
+bool
+view_impl_is_focusable(struct view *view)
+{
+	return view->surface;
+}
+
 void
 view_impl_move_to_front(struct view *view)
 {

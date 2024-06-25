@@ -1,6 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 #ifndef LABWC_VIEW_IMPL_COMMON_H
 #define LABWC_VIEW_IMPL_COMMON_H
+#include <stdbool.h>
+
 /*
  * Common code for view->impl functions
  *
@@ -10,6 +12,7 @@
 
 struct view;
 
+bool view_impl_is_focusable(struct view *view);
 void view_impl_move_to_front(struct view *view);
 void view_impl_move_to_back(struct view *view);
 void view_impl_map(struct view *view);

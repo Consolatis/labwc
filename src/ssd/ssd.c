@@ -138,6 +138,10 @@ ssd_get_part_type(const struct ssd *ssd, struct wlr_scene_node *node)
 			}
 		}
 	}
+
+	if (ssd->view->type == LAB_MULTI_VIEW) {
+		return LAB_SSD_CLIENT;
+	}
 	return LAB_SSD_NONE;
 }
 

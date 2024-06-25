@@ -11,6 +11,7 @@ labwc_sources = files(
   'layers.c',
   'magnifier.c',
   'main.c',
+  'multi-view.c',
   'node.c',
   'osd.c',
   'osd-field.c',

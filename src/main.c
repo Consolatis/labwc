@@ -107,6 +107,8 @@ idle_callback(void *data)
 	if (ctx->startup_cmd) {
 		spawn_async_no_shell(ctx->startup_cmd);
 	}
+
+	multi_view_create(ctx->server);
 }
 
 int

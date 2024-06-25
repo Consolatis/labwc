@@ -663,6 +663,7 @@ static const struct view_impl xdg_toplevel_view_impl = {
 	.append_children = xdg_toplevel_view_append_children,
 	.contains_window_type = xdg_toplevel_view_contains_window_type,
 	.get_pid = xdg_view_get_pid,
+	.is_focusable = view_impl_is_focusable,
 };
 
 static void

@@ -23,6 +23,7 @@ enum view_type {
 #if HAVE_XWAYLAND
 	LAB_XWAYLAND_VIEW,
 #endif
+	LAB_MULTI_VIEW,
 };
 
 enum ssd_preference {
@@ -139,6 +140,8 @@ struct view_impl {
 	bool (*contains_window_type)(struct view *view, int32_t window_type);
 	/* returns the client pid that this view belongs to */
 	pid_t (*get_pid)(struct view *view);
+	/* usually returns true if view->surface is set, special case for multi_view */
+	bool (*is_focusable)(struct view *self);
 };
 
 struct view {
@@ -283,6 +286,23 @@ struct xdg_toplevel_view {
 	struct wl_listener set_app_id;
 	struct wl_listener new_popup;
 };
+
+struct multi_view {
+	struct view base;
+
+	struct {
+		struct wlr_scene_tree *tree;
+		struct wlr_scene_tree *tabs;
+		struct wlr_scene_tree *surfaces;
+		struct wlr_scene_rect *bg_tabs;
+		struct wlr_scene_rect *bg_surfaces;
+	} content;
+
+	struct wl_list views;
+	struct view *selected;
+};
+
+struct view *multi_view_create(struct server *server);
 
 /* All criteria is applied in AND logic */
 enum lab_view_criteria {

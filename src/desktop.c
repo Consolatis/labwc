@@ -43,14 +43,14 @@ void
 desktop_focus_view(struct view *view, bool raise)
 {
 	assert(view);
+
 	/*
 	 * Guard against views with no mapped surfaces when handling
 	 * 'request_activate' and 'request_minimize'.
 	 */
-	if (!view->surface) {
+	if (!view->impl->is_focusable || !view->impl->is_focusable(view)) {
 		return;
 	}
-
 	if (view->minimized) {
 		/*
 		 * Unminimizing will map the view which triggers a call to this
