@@ -195,6 +195,7 @@ ssd_titlebar_update(struct ssd *ssd)
 	}
 
 	if (width == ssd->state.geometry.width) {
+		ssd_update_title(ssd);
 		return;
 	}
 

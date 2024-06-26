@@ -303,6 +303,8 @@ struct multi_view {
 };
 
 struct view *multi_view_create(struct server *server);
+void multi_view_add(struct multi_view *multi_view, struct view *view);
+bool multi_view_cycle(struct multi_view *multi_view);
 
 /* All criteria is applied in AND logic */
 enum lab_view_criteria {

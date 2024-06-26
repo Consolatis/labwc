@@ -117,7 +117,8 @@ enum action_type {
 	ACTION_TYPE_TOGGLE_TABLET_MOUSE_EMULATION,
 	ACTION_TYPE_TOGGLE_MAGNIFY,
 	ACTION_TYPE_ZOOM_IN,
-	ACTION_TYPE_ZOOM_OUT
+	ACTION_TYPE_ZOOM_OUT,
+	ACTION_TYPE_MULTI,
 };
 
 const char *action_names[] = {
@@ -177,6 +178,7 @@ const char *action_names[] = {
 	"ToggleMagnify",
 	"ZoomIn",
 	"ZoomOut",
+	"MultiView",
 	NULL
 };
 
@@ -299,6 +301,12 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 	string_truncate_at_pattern(argument, ".action");
 
 	switch (action->type) {
+	case ACTION_TYPE_MULTI:
+		if (!strcmp(argument, "cycle")) {
+			action_arg_add_bool(action, argument, true);
+			goto cleanup;
+		}
+		break;
 	case ACTION_TYPE_EXECUTE:
 		/*
 		 * <action name="Execute"> with an <execute> child is
@@ -747,6 +755,14 @@ actions_run(struct view *activator, struct server *server,
 			&resize_edges);
 
 		switch (action->type) {
+		case ACTION_TYPE_MULTI:;
+			bool cycle = action_get_bool(action, "cycle", false);
+			if (cycle) {
+				multi_view_cycle(server->multi_view);
+			} else if (view) {
+				multi_view_add(server->multi_view, view);
+			}
+			break;
 		case ACTION_TYPE_CLOSE:
 			if (view) {
 				view_close(view);

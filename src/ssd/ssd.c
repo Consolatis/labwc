@@ -331,6 +331,8 @@ ssd_update_geometry(struct ssd *ssd)
 			 * proof this a bit we also set it here again.
 			 */
 			ssd->state.was_maximized = maximized;
+		} else {
+			ssd_update_title(ssd);
 		}
 		return;
 	}

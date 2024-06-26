@@ -108,7 +108,7 @@ idle_callback(void *data)
 		spawn_async_no_shell(ctx->startup_cmd);
 	}
 
-	multi_view_create(ctx->server);
+	ctx->server->multi_view = (struct multi_view *)multi_view_create(ctx->server);
 }
 
 int
