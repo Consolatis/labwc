@@ -176,6 +176,40 @@ ssd_resize_edges(enum ssd_part_type type)
 	}
 }
 
+#include "config/mousebind.h"
+#include "ui.h"
+#include "node.h"
+
+static void
+ui_callback_axis(struct ui_element *self, struct ui_context *ctx)
+{
+	wlr_log(WLR_INFO, "[%p] got axis event for UI element in direction %u",
+		self, ctx->direction);
+	ctx->propagate = true;
+}
+
+static void
+ui_callback_mouse_in(struct ui_element *self, struct ui_context *ctx)
+{
+	//wlr_log(WLR_INFO, "[%p] got mouse in event for UI element", self);
+	struct wlr_scene_rect *rect = self->data;
+	wlr_scene_rect_set_color(rect, (float[4]) { 0.25, 0, 0, 0.25 });
+}
+
+static void
+ui_callback_mouse_move(struct ui_element *self, struct ui_context *ctx)
+{
+	//wlr_log(WLR_INFO, "[%p] got mouse move event for UI element", self);
+}
+
+static void
+ui_callback_mouse_out(struct ui_element *self, struct ui_context *ctx)
+{
+	//wlr_log(WLR_INFO, "[%p] got mouse out event for UI element", self);
+	struct wlr_scene_rect *rect = self->data;
+	wlr_scene_rect_set_color(rect, (float[4]) { 0.5, 0, 0, 0.5 });
+}
+
 struct ssd *
 ssd_create(struct view *view, bool active)
 {
@@ -199,6 +233,42 @@ ssd_create(struct view *view, bool active)
 	ssd_enable_keybind_inhibit_indicator(ssd, view->inhibits_keybinds);
 	ssd->state.geometry = view->current;
 
+	struct wlr_scene_tree *tree = wlr_scene_tree_create(ssd->tree);
+	struct ui_element *el = znew(*el);
+	el->impl[UI_MOUSE_AXIS] = ui_callback_axis;
+	el->impl[UI_MOUSE_MOVE] = ui_callback_mouse_move;
+	el->impl[UI_MOUSE_IN] = ui_callback_mouse_in;
+	el->impl[UI_MOUSE_OUT] = ui_callback_mouse_out;
+
+	node_descriptor_create(&tree->node, LAB_NODE_DESC_UI_ELEMENT, el);
+	wlr_scene_node_set_position(&tree->node, -200, 0);
+
+	//struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 200, 100, (float[4]){0.5, 0, 0, 0.5});
+	struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 150, 150, (float[4]){0.5, 0, 0, 0.5});
+	struct wlr_scene_rect *small = wlr_scene_rect_create(tree, 100, 100, (float[4]){0.5, 0, 0, 0.5});
+	struct wlr_scene_rect *smaller = wlr_scene_rect_create(tree, 50, 50, (float[4]){0.5, 0, 0, 0.5});
+	wlr_scene_node_set_position(&small->node, 50, 0);
+	wlr_scene_node_set_position(&smaller->node, 100, 0);
+
+	struct ui_element *small_el = znew(*small_el);
+	small_el->impl[UI_MOUSE_IN] = ui_callback_mouse_in;
+	small_el->impl[UI_MOUSE_OUT] = ui_callback_mouse_out;
+	//small_el->impl[UI_MOUSE_MOVE] = ui_callback_mouse_move;
+	small_el->impl[UI_MOUSE_AXIS] = ui_callback_axis;
+	small_el->parent = el;
+	node_descriptor_create(&small->node, LAB_NODE_DESC_UI_ELEMENT, small_el);
+	small_el->data = small;
+
+	struct ui_element *smaller_el = znew(*smaller_el);
+	smaller_el->impl[UI_MOUSE_IN] = ui_callback_mouse_in;
+	smaller_el->impl[UI_MOUSE_OUT] = ui_callback_mouse_out;
+	//small_el->impl[UI_MOUSE_MOVE] = ui_callback_mouse_move;
+	smaller_el->impl[UI_MOUSE_AXIS] = ui_callback_axis;
+	smaller_el->parent = small_el;
+	node_descriptor_create(&smaller->node, LAB_NODE_DESC_UI_ELEMENT, smaller_el);
+	smaller_el->data = smaller;
+
+	el->data = big;
 	return ssd;
 }
 
