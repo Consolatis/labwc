@@ -29,6 +29,9 @@
 #include "view.h"
 #include "xwayland.h"
 
+#include "node.h"
+#include "ui.h"
+
 #define LAB_CURSOR_SHAPE_V1_VERSION 1
 
 static const char * const *cursor_names = NULL;
@@ -557,6 +560,9 @@ cursor_process_motion(struct server *server, uint32_t time, double *sx, double *
 	/* Otherwise, find view under the pointer and send the event along */
 	struct cursor_context ctx = get_cursor_context(server);
 	struct seat *seat = &server->seat;
+
+	/* Ensures mouse in/out events are up to date */
+	ui_handle_motion(&ctx);
 
 	if (ctx.type == LAB_SSD_MENU) {
 		menu_process_cursor_motion(ctx.node);
@@ -1302,6 +1308,17 @@ handle_cursor_axis(struct server *server, struct cursor_context *ctx,
 
 	if (direction == LAB_DIRECTION_INVALID) {
 		return false;
+	}
+
+	if (ctx->type == LAB_SSD_UI_ELEMENT) {
+		struct ui_element *el = node_ui_element_from_node(ctx->node);
+		struct ui_context ui_ctx = {
+			.action = UI_MOUSE_AXIS,
+			.direction = direction,
+			.ctx = ctx
+		};
+		ui_bubble_up(el, &ui_ctx);
+		return true;
 	}
 
 	wl_list_for_each(mousebind, &rc.mousebinds, link) {

@@ -79,3 +79,12 @@ node_ssd_button_from_node(struct wlr_scene_node *wlr_scene_node)
 	assert(node_descriptor->type == LAB_NODE_DESC_SSD_BUTTON);
 	return (struct ssd_button *)node_descriptor->data;
 }
+
+struct ui_element *
+node_ui_element_from_node(struct wlr_scene_node *wlr_scene_node)
+{
+	assert(wlr_scene_node->data);
+	struct node_descriptor *node_descriptor = wlr_scene_node->data;
+	assert(node_descriptor->type == LAB_NODE_DESC_UI_ELEMENT);
+	return (struct ui_element *)node_descriptor->data;
+}

@@ -28,6 +28,7 @@ labwc_sources = files(
   'snap.c',
   'tearing.c',
   'theme.c',
+  'ui.c',
   'view.c',
   'view-impl-common.c',
   'window-rules.c',

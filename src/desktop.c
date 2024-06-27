@@ -306,6 +306,10 @@ get_cursor_context(struct server *server)
 		struct node_descriptor *desc = node->data;
 		if (desc) {
 			switch (desc->type) {
+			case LAB_NODE_DESC_UI_ELEMENT:
+				ret.node = node;
+				ret.type = LAB_SSD_UI_ELEMENT;
+				return ret;
 			case LAB_NODE_DESC_VIEW:
 			case LAB_NODE_DESC_XDG_POPUP:
 				ret.view = desc->data;

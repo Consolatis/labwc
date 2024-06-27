@@ -8,6 +8,7 @@ struct lab_layer_surface;
 struct lab_layer_popup;
 struct menuitem;
 struct ssd_button;
+struct ui_element;
 
 enum node_descriptor_type {
 	LAB_NODE_DESC_NODE = 0,
@@ -20,6 +21,7 @@ enum node_descriptor_type {
 	LAB_NODE_DESC_MENUITEM,
 	LAB_NODE_DESC_TREE,
 	LAB_NODE_DESC_SSD_BUTTON,
+	LAB_NODE_DESC_UI_ELEMENT,
 };
 
 struct node_descriptor {
@@ -79,6 +81,13 @@ struct menuitem *node_menuitem_from_node(
  * @wlr_scene_node: wlr_scene_node from which to return data
  */
 struct ssd_button *node_ssd_button_from_node(
+	struct wlr_scene_node *wlr_scene_node);
+
+/**
+ * node_ui_element_from_node - return ui_element struct from node
+ * @wlr_scene_node: wlr_scene_node from which to return data
+ */
+struct ui_element *node_ui_element_from_node(
 	struct wlr_scene_node *wlr_scene_node);
 
 #endif /* LABWC_NODE_DESCRIPTOR_H */
