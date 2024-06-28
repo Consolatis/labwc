@@ -203,10 +203,12 @@ dump_tree(struct server *server, struct wlr_scene_node *node,
 		printf("%*c+-- ", pos, ' ');
 	} else {
 		struct pad node_pad = get_center_padding("Node", 16);
-		printf(" %*c %4s  %4s  %*c%s\n", LEFT_COL_SPACE + 4, ' ',
-			"X", "Y", node_pad.left, ' ', "Node");
-		printf(" %*c %.4s  %.4s  %.16s\n", LEFT_COL_SPACE + 4, ' ',
-			HEADER_CHARS, HEADER_CHARS, HEADER_CHARS);
+		printf(" %*c %4s  %4s  %*c%s  %*c%s\n", LEFT_COL_SPACE + 4, ' ',
+			"X", "Y",
+			node_pad.left, ' ', "Node",
+			node_pad.right + node_pad.left, ' ', "Data");
+		printf(" %*c %.4s  %.4s  %.16s  %.16s\n", LEFT_COL_SPACE + 4, ' ',
+			HEADER_CHARS, HEADER_CHARS, HEADER_CHARS, HEADER_CHARS);
 		printf(" ");
 	}
 	int max_width = LEFT_COL_SPACE - pos;
@@ -217,7 +219,7 @@ dump_tree(struct server *server, struct wlr_scene_node *node,
 	if (!pos) {
 		padding += 3;
 	}
-	printf("%.*s %*c %4d  %4d  [%p]\n", max_width - 1, type, padding, ' ', x, y, node);
+	printf("%.*s %*c %4d  %4d  [%p]  %16p\n", max_width - 1, type, padding, ' ', x, y, node, node->data);
 
 	struct multi_rect *osd_preview_outline =
 		server->osd_state.preview_outline;
