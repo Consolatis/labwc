@@ -197,7 +197,8 @@ ui_callback_mouse_in(struct ui_element *self, struct ui_context *ctx)
 {
 	//wlr_log(WLR_INFO, "[%p] got mouse in event for UI element", self);
 	struct wlr_scene_rect *rect = self->data;
-	wlr_scene_rect_set_color(rect, (float[4]) { 0.25, 0, 0, 0.25 });
+	//wlr_scene_rect_set_color(rect, (float[4]) { 0.25, 0, 0, 0.25 });
+	wlr_scene_rect_set_color(rect, (float[4]) { 0.5, 0, 0, 1 });
 }
 
 static void
@@ -211,7 +212,8 @@ ui_callback_mouse_out(struct ui_element *self, struct ui_context *ctx)
 {
 	//wlr_log(WLR_INFO, "[%p] got mouse out event for UI element", self);
 	struct wlr_scene_rect *rect = self->data;
-	wlr_scene_rect_set_color(rect, (float[4]) { 0.5, 0, 0, 0.5 });
+	//wlr_scene_rect_set_color(rect, (float[4]) { 0.5, 0, 0, 0.5 });
+	wlr_scene_rect_set_color(rect, (float[4]) { 0, 0, 0.5, 1 });
 }
 
 struct ssd *
@@ -248,9 +250,12 @@ ssd_create(struct view *view, bool active)
 	wlr_scene_node_set_position(&tree->node, -200, 0);
 
 	//struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 200, 100, (float[4]){0.5, 0, 0, 0.5});
-	struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 150, 150, (float[4]){0.5, 0, 0, 0.5});
-	struct wlr_scene_rect *small = wlr_scene_rect_create(tree, 100, 100, (float[4]){0.5, 0, 0, 0.5});
-	struct wlr_scene_rect *smaller = wlr_scene_rect_create(tree, 50, 50, (float[4]){0.5, 0, 0, 0.5});
+	//struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 150, 150, (float[4]){0.5, 0, 0, 0.5});
+	//struct wlr_scene_rect *small = wlr_scene_rect_create(tree, 100, 100, (float[4]){0.5, 0, 0, 0.5});
+	//struct wlr_scene_rect *smaller = wlr_scene_rect_create(tree, 50, 50, (float[4]){0.5, 0, 0, 0.5});
+	struct wlr_scene_rect *big = wlr_scene_rect_create(tree, 150, 150, (float[4]){0, 0, 0.5, 1});
+	struct wlr_scene_rect *small = wlr_scene_rect_create(tree, 100, 100, (float[4]){0, 0, 0.5, 1});
+	struct wlr_scene_rect *smaller = wlr_scene_rect_create(tree, 50, 50, (float[4]){0, 0, 0.5, 1});
 	wlr_scene_node_set_position(&small->node, 50, 0);
 	wlr_scene_node_set_position(&smaller->node, 100, 0);
 
