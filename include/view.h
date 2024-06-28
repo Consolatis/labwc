@@ -290,16 +290,12 @@ struct xdg_toplevel_view {
 struct multi_view {
 	struct view base;
 
-	struct {
-		struct wlr_scene_tree *tree;
-		struct wlr_scene_tree *tabs;
-		struct wlr_scene_tree *surfaces;
-		struct wlr_scene_rect *bg_tabs;
-		struct wlr_scene_rect *bg_surfaces;
-	} content;
-
+	struct tab_view *tab_view;
 	struct wl_list views;
 	struct view *selected;
+	struct {
+		struct wl_listener selection;
+	} on;
 };
 
 struct view *multi_view_create(struct server *server);
