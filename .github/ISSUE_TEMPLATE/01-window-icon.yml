@@ -30,6 +30,6 @@ body:
     attributes:
       label: ".desktop file"
       description: "The .desktop file of the application, usually located at /usr/share/applications/"
-      render: ini
+      render: desktop
     validations:
       required: true
