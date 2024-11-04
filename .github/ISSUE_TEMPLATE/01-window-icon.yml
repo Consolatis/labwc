@@ -1,0 +1,38 @@
+name: Window icon not working
+description: A window icon of a specific application isn't working
+labels: [ "icon" ]
+body:
+  - type: markdown
+    attributes:
+      value: >
+        foo
+  - id: application
+    type: input
+    attributes:
+      label: Application that has no window icon
+      placeholder: Chromium
+    validations:
+      required: true
+  - id: app-id
+    type: input
+    attributes:
+      label: AppID as exposed by the application
+      placeholder: chromium
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        There are multiple ways to figure out the app-id of the application as seen by labwc:
+        - In the labwc window switcher with a field definition of `identifier`
+        - In the labwc debug log output (`labwc -d 2>/tmp/labwc.log` and `grep 'identifier=' /tmp/labwc.log`)
+        - Via external tool like `wlrctl window list` (first column)
+        - Via external tool like `lswt`
+  - id: desktop-file
+    type: textarea
+    attributes:
+      label: ".desktop file"
+      description: "The .desktop file of the application, usually located at /usr/share/applications/"
+      render: ini
+    validations:
+      required: true
