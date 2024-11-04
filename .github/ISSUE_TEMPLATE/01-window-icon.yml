@@ -3,10 +3,6 @@ description: A window icon of a specific application isn't working
 title: "Window icon not working for "
 labels: [ "icon" ]
 body:
-  - type: markdown
-    attributes:
-      value: >
-        foo
   - id: application
     type: input
     attributes:
