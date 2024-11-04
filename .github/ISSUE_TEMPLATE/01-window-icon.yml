@@ -20,16 +20,24 @@ body:
   - type: markdown
     attributes:
       value: |
-        There are multiple ways to figure out the app-id of the application as seen by labwc:
+        There are multiple ways to figure out the AppID of the application as seen by labwc:
         - In the labwc window switcher with a field definition of `identifier`
         - In the labwc debug log output (`labwc -d 2>/tmp/labwc.log` and `grep 'identifier=' /tmp/labwc.log`)
         - Via external tool like `wlrctl window list` (first column)
         - Via external tool like `lswt`
+  - id: desktop-file-name
+    type: input
+    attributes:
+      label: Name of the .desktop file
+      description: "The .desktop file name of the application, usually located at /usr/share/applications/"
+      placeholder: chromium.desktop
+    validations:
+      required: true
   - id: desktop-file
     type: textarea
     attributes:
       label: ".desktop file"
-      description: "The .desktop file of the application, usually located at /usr/share/applications/"
+      description: "The .desktop file itself"
       render: desktop
     validations:
       required: true
