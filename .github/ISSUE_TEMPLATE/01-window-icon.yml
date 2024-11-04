@@ -1,5 +1,6 @@
 name: Window icon not working
 description: A window icon of a specific application isn't working
+title: "Window icon not working for "
 labels: [ "icon" ]
 body:
   - type: markdown
