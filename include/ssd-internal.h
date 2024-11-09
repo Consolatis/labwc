@@ -15,6 +15,9 @@
 
 #define FOR_EACH_END }
 
+#define SSD_GRIP_WIDTH 20
+#define SSD_GRIP_HEIGHT 10
+
 struct ssd_button {
 	struct view *view;
 	enum ssd_part_type type;

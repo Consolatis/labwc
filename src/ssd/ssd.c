@@ -46,7 +46,7 @@ ssd_thickness(struct view *view)
 
 	struct border thickness = {
 		.top = theme->title_height + theme->border_width,
-		.bottom = theme->border_width,
+		.bottom = MAX(theme->border_width, SSD_GRIP_HEIGHT),
 		.left = theme->border_width,
 		.right = theme->border_width,
 	};

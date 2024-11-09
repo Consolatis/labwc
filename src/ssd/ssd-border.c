@@ -23,6 +23,8 @@ ssd_border_create(struct ssd *ssd)
 	int height = view_effective_height(view, /* use_pending */ false);
 	int full_width = width + 2 * theme->border_width;
 	int corner_width = ssd_get_corner_width();
+	int grip_width = SSD_GRIP_WIDTH;
+	int grip_height = MAX(SSD_GRIP_HEIGHT, theme->border_width);
 
 	float *color;
 	struct wlr_scene_tree *parent;
@@ -46,12 +48,19 @@ ssd_border_create(struct ssd *ssd)
 		add_scene_rect(&subtree->parts, LAB_SSD_PART_RIGHT, parent,
 			theme->border_width, height,
 			theme->border_width + width, 0, color);
-		add_scene_rect(&subtree->parts, LAB_SSD_PART_BOTTOM, parent,
-			full_width, theme->border_width, 0, height, color);
 		add_scene_rect(&subtree->parts, LAB_SSD_PART_TOP, parent,
 			width - 2 * corner_width, theme->border_width,
 			theme->border_width + corner_width,
 			-(ssd->titlebar.height + theme->border_width), color);
+
+		/* Bottom + grips */
+		add_scene_rect(&subtree->parts, LAB_SSD_PART_CORNER_BOTTOM_LEFT, parent,
+			grip_width, grip_height, 0, height, (float[]){ 0.5, 0, 0, 0.5});
+		add_scene_rect(&subtree->parts, LAB_SSD_PART_BOTTOM, parent,
+			full_width - 2 * grip_width, grip_height, grip_width, height, color);
+		add_scene_rect(&subtree->parts, LAB_SSD_PART_CORNER_BOTTOM_RIGHT, parent,
+			grip_width, grip_height, full_width - grip_width, height,
+			(float[]){ 0, 0.5, 0, 0.5});
 	} FOR_EACH_END
 
 	if (view->maximized == VIEW_AXIS_BOTH) {
@@ -95,6 +104,8 @@ ssd_border_update(struct ssd *ssd)
 	int height = view_effective_height(view, /* use_pending */ false);
 	int full_width = width + 2 * theme->border_width;
 	int corner_width = ssd_get_corner_width();
+	int grip_width = SSD_GRIP_WIDTH;
+	int grip_height = MAX(SSD_GRIP_HEIGHT, theme->border_width);
 
 	/*
 	 * From here on we have to cover the following border scenarios:
@@ -151,12 +162,22 @@ ssd_border_update(struct ssd *ssd)
 					theme->border_width + width,
 					side_y);
 				continue;
-			case LAB_SSD_PART_BOTTOM:
-				wlr_scene_rect_set_size(rect,
-					full_width,
-					theme->border_width);
+			case LAB_SSD_PART_CORNER_BOTTOM_LEFT:
 				wlr_scene_node_set_position(part->node,
 					0,
+					height);
+				continue;
+			case LAB_SSD_PART_BOTTOM:
+				wlr_scene_rect_set_size(rect,
+					full_width - 2 * grip_width,
+					grip_height);
+				wlr_scene_node_set_position(part->node,
+					grip_width,
+					height);
+				continue;
+			case LAB_SSD_PART_CORNER_BOTTOM_RIGHT:
+				wlr_scene_node_set_position(part->node,
+					full_width - grip_width,
 					height);
 				continue;
 			case LAB_SSD_PART_TOP:
