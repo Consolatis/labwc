@@ -24,6 +24,7 @@ struct scaled_rect_buffer {
 	uint32_t stroked_edges; /* bitmap of wlr_direction */
 	float fill_color[4];
 	float border_color[4];
+	struct wl_list link;  /* internal cache */
 };
 
 /**

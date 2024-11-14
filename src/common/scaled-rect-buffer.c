@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wayland-server-core.h>
+#include <wlr/types/wlr_scene.h>
 #include <wlr/util/log.h>
 #include "buffer.h"
 #include "common/corner.h"
@@ -12,6 +13,8 @@
 #include "common/mem.h"
 #include "common/scaled-scene-buffer.h"
 #include "common/scaled-rect-buffer.h"
+
+static struct wl_list cache;
 
 static void
 draw_edge(cairo_t *cairo, int w, int h, int r, uint32_t corners, enum wlr_direction edge)
@@ -55,14 +58,58 @@ draw_edge(cairo_t *cairo, int w, int h, int r, uint32_t corners, enum wlr_direct
 	}
 }
 
+static bool
+rect_equal(struct scaled_rect_buffer *a, struct scaled_rect_buffer *b)
+{
+	if (a == b) {
+		return true;
+	}
+	// FIXME: scale missing
+
+	if (a->width != b->width
+			|| a->height != b->height
+			|| a->border_width != b->border_width
+			|| a->corner_radius != b->corner_radius
+			|| a->rounded_corners != b->rounded_corners
+			|| a->stroked_edges != b->stroked_edges) {
+		return false;
+	}
+	//colors
+	if (memcmp(a->fill_color, b->fill_color, sizeof(a->fill_color))) {
+		return false;
+	}
+	if (memcmp(a->border_color, b->border_color, sizeof(a->border_color))) {
+		return false;
+	}
+	return true;
+}
+
+
 static struct lab_data_buffer *
 _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 {
 	struct scaled_rect_buffer *self = scaled_buffer->data;
+
+	struct scaled_rect_buffer *rect;
+	wl_list_for_each(rect, &cache, link) {
+		if (rect_equal(rect, self) && rect->scene_buffer->buffer) {
+			wlr_log(WLR_INFO, "Reusing wlr_buffer %p",
+				rect->scene_buffer->buffer);
+
+			// FIXME: although this is safe in practice as this file
+			//        is the one creating the wlr_buffer this needs
+			//        something better. Potentially something like
+			//        lab_data_buffer_try_from_wlr_buffer(wlr_buffer)
+			return (struct lab_data_buffer *)rect->scene_buffer->buffer;
+		}
+	}
+
 	struct lab_data_buffer *buffer = buffer_create_cairo(self->width, self->height, scale);
 	if (!buffer) {
 		return NULL;
 	}
+
+	wlr_log(WLR_INFO, "Creating wlr_buffer %p", &buffer->base);
 
 	cairo_t *cairo = buffer->cairo;
 	cairo_save(cairo);
@@ -112,6 +159,7 @@ _destroy(struct scaled_scene_buffer *scaled_buffer)
 {
 	struct scaled_rect_buffer *self = scaled_buffer->data;
 	scaled_buffer->data = NULL;
+	wl_list_remove(&self->link);
 	free(self);
 }
 
@@ -126,9 +174,22 @@ struct scaled_rect_buffer *scaled_rect_buffer_create(
 	float fill_color[4], float border_color[4])
 {
 	assert(parent);
+
+	if (!cache.next) {
+		wlr_log(WLR_INFO, "initializing cache");
+		wl_list_init(&cache);
+	}
+
 	struct scaled_rect_buffer *self = znew(*self);
 	struct scaled_scene_buffer *scaled_buffer =
-		scaled_scene_buffer_create(parent, &impl, /* drop_buffer */ true);
+		scaled_scene_buffer_create(parent, &impl, /* drop_buffer */ false);
+	// FIXME: needs change in wlr_buffer_drop() behavior
+	//        this currently just leaks wlr_buffers as they
+	//        are never dropped.
+	//
+	//        Maybe we can just wlr_buffer_lock(); wlr_buffer_drop();
+	//        in _create_buffer() and then wlr_buffer_unlock() in _destroy()
+
 	scaled_buffer->data = self;
 	self->scaled_buffer = scaled_buffer;
 	self->scene_buffer = scaled_buffer->scene_buffer;
@@ -140,6 +201,8 @@ struct scaled_rect_buffer *scaled_rect_buffer_create(
 	self->stroked_edges = stroked_edges;
 	memcpy(self->fill_color, fill_color, sizeof(self->fill_color));
 	memcpy(self->border_color, border_color, sizeof(self->border_color));
+
+	wl_list_insert(&cache, &self->link);
 
 	scaled_scene_buffer_invalidate_cache(scaled_buffer);
 
