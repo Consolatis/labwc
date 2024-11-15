@@ -43,6 +43,7 @@ struct lab_data_buffer {
 	 */
 	uint32_t logical_width;
 	uint32_t logical_height;
+	double scale;
 };
 
 /*

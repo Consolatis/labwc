@@ -139,6 +139,7 @@ buffer_create_cairo(uint32_t logical_width, uint32_t logical_height, float scale
 	struct lab_data_buffer *buffer = buffer_adopt_cairo_surface(surface);
 	buffer->logical_width = logical_width;
 	buffer->logical_height = logical_height;
+	buffer->scale = scale;
 	buffer->cairo = cairo_create(surface);
 
 	return buffer;
@@ -174,6 +175,7 @@ buffer_convert_cairo_surface_for_icon(cairo_surface_t *surface,
 		/* set logical size for display */
 		buffer->logical_width = logical.width;
 		buffer->logical_height = logical.height;
+		buffer->scale = scale;
 	} else {
 		/* convert to ARGB32 and scale for display (slow path) */
 		buffer = buffer_create_cairo(logical.width,
@@ -204,6 +206,7 @@ buffer_create_from_data(void *pixel_data, uint32_t width, uint32_t height,
 	wlr_buffer_init(&buffer->base, &data_buffer_impl, width, height);
 	buffer->logical_width = width;
 	buffer->logical_height = height;
+	buffer->scale = 1;
 	buffer->data = pixel_data;
 	buffer->format = DRM_FORMAT_ARGB8888;
 	buffer->stride = stride;
