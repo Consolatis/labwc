@@ -93,7 +93,7 @@ _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 	struct scaled_rect_buffer *rect;
 	wl_list_for_each(rect, &cache, link) {
 		if (rect_equal(rect, self) && rect->scene_buffer->buffer) {
-			wlr_log(WLR_INFO, "Reusing wlr_buffer %p",
+			wlr_log(WLR_INFO, "\t[%p] Reusing wlr_buffer",
 				rect->scene_buffer->buffer);
 
 			// FIXME: although this is safe in practice as this file
@@ -109,7 +109,7 @@ _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 		return NULL;
 	}
 
-	wlr_log(WLR_INFO, "Creating wlr_buffer %p", &buffer->base);
+	wlr_log(WLR_INFO, "\t[%p] Creating wlr_buffer", &buffer->base);
 
 	cairo_t *cairo = buffer->cairo;
 	cairo_save(cairo);
@@ -182,13 +182,7 @@ struct scaled_rect_buffer *scaled_rect_buffer_create(
 
 	struct scaled_rect_buffer *self = znew(*self);
 	struct scaled_scene_buffer *scaled_buffer =
-		scaled_scene_buffer_create(parent, &impl, /* drop_buffer */ false);
-	// FIXME: needs change in wlr_buffer_drop() behavior
-	//        this currently just leaks wlr_buffers as they
-	//        are never dropped.
-	//
-	//        Maybe we can just wlr_buffer_lock(); wlr_buffer_drop();
-	//        in _create_buffer() and then wlr_buffer_unlock() in _destroy()
+		scaled_scene_buffer_create(parent, &impl, /* drop_buffer */ true);
 
 	scaled_buffer->data = self;
 	self->scaled_buffer = scaled_buffer;
