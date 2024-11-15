@@ -28,9 +28,12 @@
 #include <stdlib.h>
 #include <drm_fourcc.h>
 #include <wlr/interfaces/wlr_buffer.h>
+#include <wlr/util/log.h>
 #include "buffer.h"
 #include "common/box.h"
 #include "common/mem.h"
+
+static int buf_count;
 
 static const struct wlr_buffer_impl data_buffer_impl;
 
@@ -64,6 +67,9 @@ data_buffer_destroy(struct wlr_buffer *wlr_buffer)
 		free(buffer->data);
 		buffer->data = NULL;
 	}
+	buf_count--;
+	wlr_log(WLR_INFO, "\t[%p] Destroyed lab data buffer, %d remaining",
+		buffer, buf_count);
 	free(buffer);
 }
 
@@ -102,6 +108,7 @@ buffer_adopt_cairo_surface(cairo_surface_t *surface)
 	int height = cairo_image_surface_get_height(surface);
 
 	struct lab_data_buffer *buffer = znew(*buffer);
+	buf_count++;
 	wlr_buffer_init(&buffer->base, &data_buffer_impl, width, height);
 
 	buffer->surface = surface;
@@ -142,6 +149,8 @@ buffer_create_cairo(uint32_t logical_width, uint32_t logical_height, float scale
 	buffer->scale = scale;
 	buffer->cairo = cairo_create(surface);
 
+	wlr_log(WLR_INFO, "\t[%p] Created lab data buffer, %d buffers total",
+		buffer, buf_count);
 	return buffer;
 }
 
@@ -203,6 +212,7 @@ buffer_create_from_data(void *pixel_data, uint32_t width, uint32_t height,
 		uint32_t stride)
 {
 	struct lab_data_buffer *buffer = znew(*buffer);
+	buf_count++;
 	wlr_buffer_init(&buffer->base, &data_buffer_impl, width, height);
 	buffer->logical_width = width;
 	buffer->logical_height = height;
