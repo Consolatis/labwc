@@ -64,7 +64,6 @@ rect_equal(struct scaled_rect_buffer *a, struct scaled_rect_buffer *b)
 	if (a == b) {
 		return true;
 	}
-	// FIXME: scale missing
 
 	if (a->width != b->width
 			|| a->height != b->height
@@ -89,22 +88,23 @@ static struct lab_data_buffer *
 _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 {
 	struct scaled_rect_buffer *self = scaled_buffer->data;
+	struct wlr_buffer *wlr_buffer;
+	struct lab_data_buffer *buffer;
 
 	struct scaled_rect_buffer *rect;
 	wl_list_for_each(rect, &cache, link) {
-		if (rect_equal(rect, self) && rect->scene_buffer->buffer) {
-			wlr_log(WLR_INFO, "\t[%p] Reusing wlr_buffer",
-				rect->scene_buffer->buffer);
-
-			// FIXME: although this is safe in practice as this file
-			//        is the one creating the wlr_buffer this needs
-			//        something better. Potentially something like
-			//        lab_data_buffer_try_from_wlr_buffer(wlr_buffer)
-			return (struct lab_data_buffer *)rect->scene_buffer->buffer;
+		wlr_buffer = rect->scene_buffer->buffer;
+		if (wlr_buffer && rect_equal(rect, self)) {
+			buffer = lab_data_buffer_try_from_wlr_buffer(wlr_buffer);
+			if (!buffer || buffer->scale != scale) {
+				continue;
+			}
+			wlr_log(WLR_INFO, "\t[%p] Reusing wlr_buffer", wlr_buffer);
+			return buffer;
 		}
 	}
 
-	struct lab_data_buffer *buffer = buffer_create_cairo(self->width, self->height, scale);
+	buffer = buffer_create_cairo(self->width, self->height, scale);
 	if (!buffer) {
 		return NULL;
 	}
