@@ -41,6 +41,15 @@ data_buffer_from_buffer(struct wlr_buffer *buffer)
 	return (struct lab_data_buffer *)buffer;
 }
 
+struct lab_data_buffer *
+lab_data_buffer_try_from_wlr_buffer(struct wlr_buffer *buffer)
+{
+	if (buffer->impl != &data_buffer_impl) {
+		return NULL;
+	}
+	return wl_container_of(buffer, (struct lab_data_buffer *)NULL, base);
+}
+
 static void
 data_buffer_destroy(struct wlr_buffer *wlr_buffer)
 {

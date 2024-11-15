@@ -83,4 +83,7 @@ struct lab_data_buffer *buffer_convert_cairo_surface_for_icon(
 struct lab_data_buffer *buffer_create_from_data(void *pixel_data, uint32_t width,
 	uint32_t height, uint32_t stride);
 
+struct lab_data_buffer *lab_data_buffer_try_from_wlr_buffer(
+	struct wlr_buffer *buffer);
+
 #endif /* LABWC_BUFFER_H */
