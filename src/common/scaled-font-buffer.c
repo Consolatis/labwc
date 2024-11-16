@@ -42,9 +42,33 @@ _destroy(struct scaled_scene_buffer *scaled_buffer)
 	free(self);
 }
 
-static const struct scaled_scene_buffer_impl impl = {
+static bool str_equal(const char *a, const char *b)
+{
+	return a == b || (a && b && !strcmp(a, b));
+}
+
+static bool
+_equal(struct scaled_scene_buffer *scaled_buffer_a,
+	struct scaled_scene_buffer *scaled_buffer_b)
+{
+	struct scaled_font_buffer *a = scaled_buffer_a->data;
+	struct scaled_font_buffer *b = scaled_buffer_b->data;
+
+	return str_equal(a->text, b->text)
+		&& a->max_width == b->max_width
+		&& str_equal(a->font.name, b->font.name)
+		&& a->font.size == b->font.size
+		&& a->font.slant == b->font.slant
+		&& a->font.weight == b->font.weight
+		&& !memcmp(a->color, b->color, sizeof(float[4]))
+		&& !memcmp(a->bg_color, b->bg_color, sizeof(float[4]))
+		&& str_equal(a->arrow, b->arrow);
+}
+
+static struct scaled_scene_buffer_impl impl = {
 	.create_buffer = _create_buffer,
-	.destroy = _destroy
+	.destroy = _destroy,
+	.equal = _equal,
 };
 
 /* Public API */

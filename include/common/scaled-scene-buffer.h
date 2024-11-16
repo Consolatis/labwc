@@ -17,6 +17,10 @@ struct scaled_scene_buffer_impl {
 		(struct scaled_scene_buffer *scaled_buffer, double scale);
 	/* Might be NULL or used for cleaning up */
 	void (*destroy)(struct scaled_scene_buffer *scaled_buffer);
+	/* Returns true if the two buffers are visually the same */
+	bool (*equal)(struct scaled_scene_buffer *scaled_buffer_a,
+		struct scaled_scene_buffer *scaled_buffer_b);
+	struct wl_list cached_buffers;
 };
 
 struct scaled_scene_buffer {
@@ -32,7 +36,8 @@ struct scaled_scene_buffer {
 	struct wl_listener destroy;
 	struct wl_listener output_enter;
 	struct wl_listener output_leave;
-	const struct scaled_scene_buffer_impl *impl;
+	struct scaled_scene_buffer_impl *impl;
+	struct wl_list link;
 };
 
 /**
@@ -78,7 +83,7 @@ struct scaled_scene_buffer {
  */
 struct scaled_scene_buffer *scaled_scene_buffer_create(
 	struct wlr_scene_tree *parent,
-	const struct scaled_scene_buffer_impl *implementation,
+	struct scaled_scene_buffer_impl *implementation,
 	bool drop_buffer);
 
 /* Clear the cache of existing buffers, useful in case the content changes */
