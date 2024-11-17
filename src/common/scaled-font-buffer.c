@@ -25,8 +25,6 @@ _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 		wlr_log(WLR_ERROR, "font_buffer_create() failed");
 	}
 
-	self->width = buffer ? buffer->logical_width : 0;
-	self->height = buffer ? buffer->logical_height : 0;
 	return buffer;
 }
 
@@ -120,6 +118,10 @@ scaled_font_buffer_update(struct scaled_font_buffer *self, const char *text,
 
 	/* Invalidate cache and force a new render */
 	scaled_scene_buffer_invalidate_cache(self->scaled_buffer);
+
+	/* Ensure the height / width is up-to-date */
+	self->width = self->scaled_buffer->width;
+	self->height = self->scaled_buffer->height;
 }
 
 void
@@ -127,4 +129,8 @@ scaled_font_buffer_set_max_width(struct scaled_font_buffer *self, int max_width)
 {
 	self->max_width = max_width;
 	scaled_scene_buffer_invalidate_cache(self->scaled_buffer);
+
+	/* Ensure the height / width is up-to-date */
+	self->width = self->scaled_buffer->width;
+	self->height = self->scaled_buffer->height;
 }
