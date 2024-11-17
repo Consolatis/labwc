@@ -74,12 +74,20 @@ _update_buffer(struct scaled_scene_buffer *self, double scale)
 		wl_list_remove(&cache_entry->link);
 		wl_list_insert(&self->cache, &cache_entry->link);
 		wlr_scene_buffer_set_buffer(self->scene_buffer, cache_entry->buffer);
+		/*
+		 * If found in our local cache,
+		 * - self->width and self->height are already set
+		 * - wlr_scene_buffer_set_dest_size() has already been called
+		 */
 		return;
 	}
 
 	/* Search from other cached scaled-scene-buffers */
 	struct scaled_scene_buffer *scene_buffer;
 	wl_list_for_each(scene_buffer, &self->impl->cached_buffers, link) {
+		if (!self->impl->equal) {
+			break;
+		}
 		if (scene_buffer == self) {
 			continue;
 		}
@@ -90,7 +98,13 @@ _update_buffer(struct scaled_scene_buffer *self, double scale)
 		if (!cache_entry) {
 			continue;
 		}
+
+		/* Ensure self->width and self->height are set correctly */
+		self->width = scene_buffer->width;
+		self->height = scene_buffer->height;
+
 		wlr_scene_buffer_set_buffer(self->scene_buffer, cache_entry->buffer);
+		wlr_scene_buffer_set_dest_size(self->scene_buffer, self->width, self->height);
 		return;
 	}
 
