@@ -479,8 +479,7 @@ view_set_activated(struct view *view, bool activated)
 	if (rc.kb_layout_per_window) {
 		if (!activated) {
 			/* Store configured keyboard layout per view */
-			view->keyboard_layout =
-				view->server->seat.keyboard_group->keyboard.modifiers.group;
+			view->keyboard_layout = keyboard_get_layout(&view->server->seat);
 		} else {
 			/* Switch to previously stored keyboard layout */
 			keyboard_update_layout(&view->server->seat, view->keyboard_layout);

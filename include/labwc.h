@@ -87,6 +87,7 @@ struct keyboard {
 	struct input base;
 	struct wlr_keyboard *wlr_keyboard;
 	bool is_virtual;
+	uint32_t enforce_group_modifier;
 	struct wl_listener modifier;
 	struct wl_listener key;
 	/* key repeat for compositor keybinds */

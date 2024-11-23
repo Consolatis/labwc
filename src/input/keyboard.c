@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <wlr/backend/multi.h>
 #include <wlr/backend/session.h>
+#include <wlr/backend/wayland.h>
 #include <wlr/interfaces/wlr_keyboard.h>
 #include "action.h"
 #include "idle.h"
@@ -124,6 +125,15 @@ keyboard_modifiers_notify(struct wl_listener *listener, void *data)
 	struct seat *seat = keyboard->base.seat;
 	struct server *server = seat->server;
 	struct wlr_keyboard *wlr_keyboard = keyboard->wlr_keyboard;
+
+	if (wlr_input_device_is_wl(&wlr_keyboard->base)) {
+		/*
+		 * On the wayland backend, the host group modifier overwrites
+		 * our internal group modifier on every modifier event. Thus
+		 * we prevent it from doing so.
+		 */
+		wlr_keyboard->modifiers.group = keyboard->enforce_group_modifier;
+	}
 
 	if (server->input_mode == LAB_INPUT_STATE_MOVE) {
 		/* Any change to the modifier state re-enable region snap */
@@ -410,6 +420,23 @@ handle_change_vt_key(struct server *server, struct keyboard *keyboard,
 	return false;
 }
 
+static bool
+handle_layout_switch(struct seat *seat, struct wlr_keyboard *wlr_kb, struct keysyms *translated)
+{
+	for (int i = 0; i < translated->nr_syms; i++) {
+		if (translated->syms[i] == XKB_KEY_Mode_switch
+				|| translated->syms[i] == XKB_KEY_ISO_Next_Group) {
+			xkb_layout_index_t layout = wlr_kb->modifiers.group;
+			xkb_layout_index_t nr_layouts = xkb_keymap_num_layouts(wlr_kb->keymap);
+			layout = (layout + 1) % nr_layouts;
+			wlr_log(WLR_DEBUG, "switching layout to index %u", layout);
+			keyboard_update_layout(seat, layout);
+			return true;
+		}
+	}
+	return false;
+}
+
 static void
 handle_menu_keys(struct server *server, struct keysyms *syms)
 {
@@ -526,6 +553,15 @@ handle_compositor_keybindings(struct keyboard *keyboard,
 			return true;
 		} else {
 			return handle_key_release(server, event->keycode);
+		}
+	}
+
+	if (wlr_input_device_is_wl(&wlr_keyboard->base)) {
+		/* When running nested, handle layout switching ourselves */
+		/* TODO: figure out why we have to */
+		if (handle_layout_switch(seat, wlr_keyboard, &keyinfo.translated)) {
+			key_state_store_pressed_key_as_bound(event->keycode);
+			return LAB_KEY_HANDLED_TRUE_AND_VT_CHANGED;
 		}
 	}
 
@@ -686,6 +722,19 @@ keyboard_set_numlock(struct wlr_keyboard *keyboard)
 		keyboard->modifiers.latched, locked, keyboard->modifiers.group);
 }
 
+xkb_layout_index_t
+keyboard_get_layout(struct seat *seat)
+{
+	/* When running nested the keyboard_group has the host group modifier */
+	// FIXME: show to handle virtual keyboards in general
+	struct wlr_keyboard *kb = wlr_seat_get_keyboard(seat->seat);
+	if (!kb || !wlr_input_device_is_wl(&kb->base)) {
+		kb = &seat->keyboard_group->keyboard;
+	}
+	return kb->modifiers.group;
+
+}
+
 void
 keyboard_update_layout(struct seat *seat, xkb_layout_index_t layout)
 {
@@ -716,7 +765,7 @@ keyboard_update_layout(struct seat *seat, xkb_layout_index_t layout)
 	}
 
 	/* By updating a member of the keyboard group, all members of the group will get updated */
-	wlr_log(WLR_DEBUG, "Updating group layout to %u", layout);
+	keyboard->enforce_group_modifier = layout;
 	wlr_keyboard_notify_modifiers(kb, kb->modifiers.depressed,
 		kb->modifiers.latched, kb->modifiers.locked, layout);
 }
