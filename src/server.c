@@ -33,12 +33,14 @@
 #include "desktop-entry.h"
 #endif
 #include "idle.h"
+#include "input/keyboard.h"
 #include "labwc.h"
 #include "layers.h"
 #include "magnifier.h"
 #include "menu/menu.h"
 #include "output-state.h"
 #include "output-virtual.h"
+#include "protocols/cosmic-keymap-layout.h"
 #include "regions.h"
 #include "resize-indicator.h"
 #include "theme.h"
@@ -50,6 +52,7 @@
 #define LAB_WLR_FRACTIONAL_SCALE_V1_VERSION 1
 #define LAB_WLR_LINUX_DMABUF_VERSION 4
 #define EXT_FOREIGN_TOPLEVEL_LIST_VERSION 1
+#define LAB_COSMIC_KEYMAP_LAYOUT_MANAGER_VERSION 1
 
 static struct wlr_compositor *compositor;
 static struct wl_event_source *sighup_source;
@@ -307,6 +310,15 @@ handle_renderer_lost(struct wl_listener *listener, void *data)
 
 	wlr_allocator_destroy(old_allocator);
 	wlr_renderer_destroy(old_renderer);
+}
+
+static void
+handle_keymap_layout_request_layout(struct wl_listener *listener, void *data)
+{
+	struct server *server = wl_container_of(listener, server, keymap_layout.on.request_layout);
+	uint32_t layout = *((uint32_t *)data);
+	wlr_log(WLR_DEBUG, "Setting layout to %u due to cosmic-keymap-layout request", layout);
+	keyboard_update_layout(&server->seat, layout);
 }
 
 void
@@ -581,6 +593,12 @@ server_init(struct server *server)
 	wl_signal_add(&server->tearing_control->events.new_object, &server->tearing_new_object);
 
 	server->tablet_manager = wlr_tablet_v2_create(server->wl_display);
+
+	server->keymap_layout.manager = lab_cosmic_keymap_layout_manager_create(
+		server->wl_display, LAB_COSMIC_KEYMAP_LAYOUT_MANAGER_VERSION);
+	server->keymap_layout.on.request_layout.notify = handle_keymap_layout_request_layout;
+	wl_signal_add(&server->keymap_layout.manager->events.request_layout,
+		&server->keymap_layout.on.request_layout);
 
 	layers_init(server);
 

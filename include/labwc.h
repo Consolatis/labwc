@@ -317,6 +317,13 @@ struct server {
 		} on;
 	} workspaces;
 
+	struct {
+		struct lab_cosmic_keymap_layout_manager *manager;
+		struct {
+			struct wl_listener request_layout;
+		} on;
+	} keymap_layout;
+
 	struct wl_list outputs;
 	struct wl_listener new_output;
 	struct wlr_output_layout *output_layout;
