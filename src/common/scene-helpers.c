@@ -50,9 +50,10 @@ static void
 scene_output_damage(struct wlr_scene_output *scene_output,
 		const pixman_region32_t *region)
 {
-	if (!wlr_damage_ring_add(&scene_output->damage_ring, region)) {
-		return;
-	}
+	wlr_damage_ring_add(&scene_output->damage_ring, region);
+	//if (!wlr_damage_ring_add(&scene_output->damage_ring, region)) {
+	//	return;
+	//}
 
 	struct wlr_output *output = scene_output->output;
 	enum wl_output_transform transform =
