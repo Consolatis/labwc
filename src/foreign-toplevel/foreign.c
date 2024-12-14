@@ -21,6 +21,30 @@ foreign_request_maximize(struct foreign_toplevel *toplevel, enum view_axis axis)
 }
 
 void
+foreign_request_always_on_top(struct foreign_toplevel *toplevel, bool always_on_top)
+{
+	if (view_is_always_on_top(toplevel->view) == always_on_top) {
+		return;
+	}
+	view_toggle_always_on_top(toplevel->view);
+}
+
+void
+foreign_request_omnipresent(struct foreign_toplevel *toplevel, bool omnipresent)
+{
+	if (toplevel->view->visible_on_all_workspaces == omnipresent) {
+		return;
+	}
+	view_toggle_visible_on_all_workspaces(toplevel->view);
+}
+
+void
+foreign_request_shade(struct foreign_toplevel *toplevel, bool shaded)
+{
+	view_set_shade(toplevel->view, shaded);
+}
+
+void
 foreign_request_fullscreen(struct foreign_toplevel *toplevel, bool fullscreen)
 {
 	view_set_fullscreen(toplevel->view, fullscreen);

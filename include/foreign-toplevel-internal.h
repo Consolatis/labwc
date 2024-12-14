@@ -20,6 +20,9 @@ struct foreign_toplevel {
 			struct wl_listener request_fullscreen;
 			struct wl_listener request_activate;
 			struct wl_listener request_close;
+			struct wl_listener request_always_on_top;
+			struct wl_listener request_on_all_workspaces;
+			struct wl_listener request_roll_up;
 			struct wl_listener handle_destroy;
 		} on;
 
@@ -32,6 +35,9 @@ struct foreign_toplevel {
 			struct wl_listener minimized;
 			struct wl_listener fullscreened;
 			struct wl_listener activated;
+			struct wl_listener always_on_top;
+			struct wl_listener omnipresent;
+			struct wl_listener shaded;
 		} on_view;
 
 		/* Internal signals */
@@ -76,6 +82,9 @@ void wlr_foreign_toplevel_init(struct foreign_toplevel *toplevel);
 
 void foreign_request_minimize(struct foreign_toplevel *toplevel, bool minimized);
 void foreign_request_maximize(struct foreign_toplevel *toplevel, enum view_axis axis);
+void foreign_request_always_on_top(struct foreign_toplevel *toplevel, bool always_on_top);
+void foreign_request_omnipresent(struct foreign_toplevel *toplevel, bool omnipresent);
+void foreign_request_shade(struct foreign_toplevel *toplevel, bool shade);
 void foreign_request_fullscreen(struct foreign_toplevel *toplevel, bool fullscreen);
 void foreign_request_activate(struct foreign_toplevel *toplevel);
 void foreign_request_close(struct foreign_toplevel *toplevel);

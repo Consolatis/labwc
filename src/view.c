@@ -1554,6 +1554,7 @@ view_toggle_always_on_top(struct view *view)
 		wlr_scene_node_reparent(&view->scene_tree->node,
 			view->server->view_tree_always_on_top);
 	}
+	wl_signal_emit_mutable(&view->events.always_on_top, NULL);
 }
 
 bool
@@ -1583,6 +1584,7 @@ view_toggle_visible_on_all_workspaces(struct view *view)
 {
 	assert(view);
 	view->visible_on_all_workspaces = !view->visible_on_all_workspaces;
+	wl_signal_emit_mutable(&view->events.omnipresent, NULL);
 	ssd_update_geometry(view->ssd);
 }
 
@@ -2470,6 +2472,8 @@ view_set_shade(struct view *view, bool shaded)
 	}
 
 	view->shaded = shaded;
+	wl_signal_emit_mutable(&view->events.shaded, NULL);
+
 	ssd_enable_shade(view->ssd, view->shaded);
 	wlr_scene_node_set_enabled(view->scene_node, !view->shaded);
 
@@ -2490,6 +2494,9 @@ view_init(struct view *view)
 	wl_signal_init(&view->events.minimized);
 	wl_signal_init(&view->events.fullscreened);
 	wl_signal_init(&view->events.activated);
+	wl_signal_init(&view->events.always_on_top);
+	wl_signal_init(&view->events.omnipresent);
+	wl_signal_init(&view->events.shaded);
 }
 
 void

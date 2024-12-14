@@ -59,6 +59,36 @@ handle_request_close(struct wl_listener *listener, void *data)
 }
 
 static void
+handle_request_always_on_top(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel = wl_container_of(
+		listener, toplevel, wlr_toplevel.on.request_always_on_top);
+	struct wlr_foreign_toplevel_handle_v1_always_on_top_event *event = data;
+
+	foreign_request_always_on_top(toplevel, event->always_on_top);
+}
+
+static void
+handle_request_on_all_workspaces(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel = wl_container_of(
+		listener, toplevel, wlr_toplevel.on.request_on_all_workspaces);
+	struct wlr_foreign_toplevel_handle_v1_on_all_workspaces_event *event = data;
+
+	foreign_request_omnipresent(toplevel, event->on_all_workspaces);
+}
+
+static void
+handle_request_roll_up(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel = wl_container_of(
+		listener, toplevel, wlr_toplevel.on.request_roll_up);
+	struct wlr_foreign_toplevel_handle_v1_roll_up_event *event = data;
+
+	foreign_request_shade(toplevel, event->roll_up);
+}
+
+static void
 handle_handle_destroy(struct wl_listener *listener, void *data)
 {
 	struct wlr_foreign_toplevel *wlr_toplevel =
@@ -70,6 +100,9 @@ handle_handle_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&wlr_toplevel->on.request_fullscreen.link);
 	wl_list_remove(&wlr_toplevel->on.request_activate.link);
 	wl_list_remove(&wlr_toplevel->on.request_close.link);
+	wl_list_remove(&wlr_toplevel->on.request_always_on_top.link);
+	wl_list_remove(&wlr_toplevel->on.request_on_all_workspaces.link);
+	wl_list_remove(&wlr_toplevel->on.request_roll_up.link);
 	wl_list_remove(&wlr_toplevel->on.handle_destroy.link);
 	wlr_toplevel->handle = NULL;
 }
@@ -169,6 +202,39 @@ handle_activated(struct wl_listener *listener, void *data)
 		toplevel->wlr_toplevel.handle, *activated);
 }
 
+static void
+handle_always_on_top(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel =
+		wl_container_of(listener, toplevel, wlr_toplevel.on_view.always_on_top);
+	assert(toplevel->wlr_toplevel.handle);
+
+	wlr_foreign_toplevel_handle_v1_set_always_on_top(
+		toplevel->wlr_toplevel.handle, view_is_always_on_top(toplevel->view));
+}
+
+static void
+handle_omnipresent(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel =
+		wl_container_of(listener, toplevel, wlr_toplevel.on_view.omnipresent);
+	assert(toplevel->wlr_toplevel.handle);
+
+	wlr_foreign_toplevel_handle_v1_set_on_all_workspaces(
+		toplevel->wlr_toplevel.handle, toplevel->view->visible_on_all_workspaces);
+}
+
+static void
+handle_shaded(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel =
+		wl_container_of(listener, toplevel, wlr_toplevel.on_view.shaded);
+	assert(toplevel->wlr_toplevel.handle);
+
+	wlr_foreign_toplevel_handle_v1_set_rolled_up(
+		toplevel->wlr_toplevel.handle, toplevel->view->shaded);
+}
+
 /* Internal signals */
 static void
 handle_toplevel_parent(struct wl_listener *listener, void *data)
@@ -202,6 +268,9 @@ handle_toplevel_destroy(struct wl_listener *listener, void *data)
 	wl_list_remove(&wlr_toplevel->on_view.minimized.link);
 	wl_list_remove(&wlr_toplevel->on_view.fullscreened.link);
 	wl_list_remove(&wlr_toplevel->on_view.activated.link);
+	wl_list_remove(&wlr_toplevel->on_view.always_on_top.link);
+	wl_list_remove(&wlr_toplevel->on_view.omnipresent.link);
+	wl_list_remove(&wlr_toplevel->on_view.shaded.link);
 
 	/* Internal signals */
 	wl_list_remove(&wlr_toplevel->on_foreign_toplevel.toplevel_parent.link);
@@ -231,6 +300,10 @@ wlr_foreign_toplevel_init(struct foreign_toplevel *toplevel)
 	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_fullscreen);
 	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_activate);
 	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_close);
+	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_always_on_top);
+	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_on_all_workspaces);
+	CONNECT_SIGNAL(wlr_toplevel->handle, &wlr_toplevel->on, request_roll_up);
+
 	wlr_toplevel->on.handle_destroy.notify = handle_handle_destroy;
 	wl_signal_add(&wlr_toplevel->handle->events.destroy, &wlr_toplevel->on.handle_destroy);
 
@@ -242,6 +315,9 @@ wlr_foreign_toplevel_init(struct foreign_toplevel *toplevel)
 	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, minimized);
 	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, fullscreened);
 	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, activated);
+	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, always_on_top);
+	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, omnipresent);
+	CONNECT_SIGNAL(view, &wlr_toplevel->on_view, shaded);
 
 	/* Internal signals */
 	CONNECT_SIGNAL(toplevel, &wlr_toplevel->on_foreign_toplevel, toplevel_parent);
