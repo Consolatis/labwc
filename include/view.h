@@ -287,7 +287,8 @@ struct view {
 		struct wl_signal maximized;
 		struct wl_signal minimized;
 		struct wl_signal fullscreened;
-		struct wl_signal activated;     /* bool *activated */
+		struct wl_signal activated;          /* bool *activated */
+		struct wl_signal workspace_changed;  /* struct workspace *new_workspace */
 	} events;
 };
 
