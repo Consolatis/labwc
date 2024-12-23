@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<protocol name="interop">
+  <copyright>
+  </copyright>
+
+  <interface name="interop_manager" version="1">
+    <description summary="list and control opened apps">
+    </description>
+
+    <request name="create_handle">
+      <description summary="create a toplevel extension object">
+      </description>
+      <arg name="toplevel" type="object" interface="ext_foreign_toplevel_handle_v1"/>
+      <arg name="workspace_manager" type="object" interface="ext_workspace_manager_v1" />
+      <arg name="handle" type="new_id" interface="interop_handle"/>
+    </request>
+  </interface>
+
+  <interface name="interop_handle" version="1">
+    <description summary="an opened toplevel">
+    </description>
+
+    <event name="workspace_enter">
+      <description summary="toplevel entered a workspace">
+        This event is emitted whenever the toplevel enters a new workspace.
+      </description>
+      <arg name="workspace" type="object" interface="ext_workspace_handle_v1"/>
+    </event>
+
+    <event name="workspace_leave">
+      <description summary="toplevel left a workspace">
+        This event is emitted whenever the toplevel leaves a workspace.
+      </description>
+      <arg name="workspace" type="object" interface="ext_workspace_handle_v1"/>
+    </event>
+
+    <request name="enter_workspace">
+      <description summary="requests that the toplevel enter the given workspace">
+        Requests that the toplevel enters the given workspace. If the toplevel
+        enters the workspace is indicated by the workspace_enter event.
+      </description>
+      <arg name="workspace" type="object" interface="ext_workspace_handle_v1"/>
+    </request>
+
+    <request name="leave_workspace">
+      <description summary="requests that the toplevel leave the given workspace">
+        Requests that the toplevel leaves the given workspace. If the toplevel
+        leaves the workspace is indicated by the workspace_enter event.
+      </description>
+      <arg name="workspace" type="object" interface="ext_workspace_handle_v1"/>
+    </request>
+
+  </interface>
+</protocol>

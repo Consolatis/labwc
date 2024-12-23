@@ -23,6 +23,8 @@ server_protocols = [
 	wl_protocol_dir / 'staging/tearing-control/tearing-control-v1.xml',
 	'cosmic-workspace-unstable-v1.xml',
 	'ext-workspace-v1.xml',
+	'ext-foreign-toplevel-list-v1.xml',
+	'interop.xml',
 	'wlr-layer-shell-unstable-v1.xml',
 	'wlr-input-inhibitor-unstable-v1.xml',
 	'wlr-output-power-management-unstable-v1.xml',
