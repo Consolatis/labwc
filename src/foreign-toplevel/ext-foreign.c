@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <assert.h>
 #include <wlr/types/wlr_ext_foreign_toplevel_list_v1.h>
+#include "protocols/workspace_interop.h"
 #include "common/macros.h"
 #include "labwc.h"
 #include "view.h"
+#include "workspaces.h"
 #include "foreign-toplevel-internal.h"
 
 /* ext signals */
@@ -49,6 +51,21 @@ handle_new_title(struct wl_listener *listener, void *data)
 		toplevel->ext_toplevel.handle, &state);
 }
 
+static void
+handle_workspace_changed(struct wl_listener *listener, void *data)
+{
+	struct foreign_toplevel *toplevel =
+		wl_container_of(listener, toplevel, ext_toplevel.on_view.workspace_changed);
+	assert(toplevel->ext_toplevel.interop_handle);
+
+	struct workspace *new_workspace = data;
+	toplevel_leave_workspace(
+		toplevel->ext_toplevel.interop_handle,
+		toplevel->view->workspace->ext_workspace);
+	toplevel_join_workspace(
+		toplevel->ext_toplevel.interop_handle, new_workspace->ext_workspace);
+}
+
 /* Internal signals */
 static void
 handle_toplevel_destroy(struct wl_listener *listener, void *data)
@@ -62,9 +79,13 @@ handle_toplevel_destroy(struct wl_listener *listener, void *data)
 
 	wlr_ext_foreign_toplevel_handle_v1_destroy(ext_toplevel->handle);
 
+	/* interop_handle has its own toplevel destroy listener */
+	ext_toplevel->interop_handle = NULL;
+
 	/* Compositor side state changes */
 	wl_list_remove(&ext_toplevel->on_view.new_app_id.link);
 	wl_list_remove(&ext_toplevel->on_view.new_title.link);
+	wl_list_remove(&ext_toplevel->on_view.workspace_changed.link);
 
 	/* Internal signals */
 	wl_list_remove(&ext_toplevel->on_foreign_toplevel.toplevel_destroy.link);
@@ -92,6 +113,16 @@ ext_foreign_toplevel_init(struct foreign_toplevel *toplevel)
 		return;
 	}
 
+	ext_toplevel->interop_handle = interop_handle_create(
+		view->server->interop_manager, ext_toplevel->handle);
+	if (!ext_toplevel->interop_handle) {
+		wlr_log(WLR_ERROR, "cannot create interop handle for (%s)",
+			view_get_string_prop(view, "title"));
+		return;
+	}
+	toplevel_join_workspace(ext_toplevel->interop_handle,
+		toplevel->view->workspace->ext_workspace);
+
 	/* Client side requests */
 	ext_toplevel->on.handle_destroy.notify = handle_handle_destroy;
 	wl_signal_add(&ext_toplevel->handle->events.destroy, &ext_toplevel->on.handle_destroy);
@@ -99,6 +130,7 @@ ext_foreign_toplevel_init(struct foreign_toplevel *toplevel)
 	/* Compositor side state changes */
 	CONNECT_SIGNAL(view, &ext_toplevel->on_view, new_app_id);
 	CONNECT_SIGNAL(view, &ext_toplevel->on_view, new_title);
+	CONNECT_SIGNAL(view, &ext_toplevel->on_view, workspace_changed);
 
 	/* Internal signals */
 	CONNECT_SIGNAL(toplevel, &ext_toplevel->on_foreign_toplevel, toplevel_destroy);

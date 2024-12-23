@@ -344,6 +344,7 @@ struct server {
 
 	struct wlr_foreign_toplevel_manager_v1 *foreign_toplevel_manager;
 	struct wlr_ext_foreign_toplevel_list_v1 *foreign_toplevel_list;
+	struct interop_manager *interop_manager;
 
 	struct wlr_drm_lease_v1_manager *drm_lease_manager;
 	struct wl_listener drm_lease_request;
