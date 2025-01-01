@@ -4,6 +4,7 @@
 
 #include <cairo.h>
 #include <stdint.h>
+#include <wayland-server-core.h>
 #include <wayland-util.h>
 
 struct lab_img_cache;
@@ -19,6 +20,9 @@ struct lab_img {
 	struct theme *theme; /* Used by modifier functions */
 	struct wl_array modifiers; /* lab_img_modifier_func_t */
 	struct lab_img_cache *cache;
+	struct {
+		struct wl_signal destroy;
+	} events;
 };
 
 struct lab_img *lab_img_load(enum lab_img_type type, const char *path,

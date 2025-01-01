@@ -38,6 +38,8 @@ create_img(struct lab_img_cache *cache)
 	img->cache = cache;
 	cache->refcount++;
 	wl_array_init(&img->modifiers);
+	wlr_log(WLR_INFO, "[%p]-%d creating new image %p", cache, cache->refcount, img);
+	wl_signal_init(&img->events.destroy);
 	return img;
 }
 
@@ -156,6 +158,7 @@ struct lab_data_buffer *
 lab_img_render(struct lab_img *img, int width, int height, int padding,
 	double scale)
 {
+	wlr_log(WLR_INFO, "rendering image %p", img);
 	struct lab_data_buffer *buffer = NULL;
 
 	/* Render the image into the buffer for the given size */
@@ -203,6 +206,10 @@ lab_img_destroy(struct lab_img *img)
 	}
 
 	struct lab_img_cache *cache = img->cache;
+
+	//wlr_log(WLR_ERROR, "[%p]-%d destroying image %p", cache, cache->refcount, img);
+	wl_signal_emit_mutable(&img->events.destroy, NULL);
+
 	cache->refcount--;
 
 	if (cache->refcount == 0) {
