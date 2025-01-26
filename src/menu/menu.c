@@ -24,6 +24,7 @@
 #include "common/scene-helpers.h"
 #include "common/spawn.h"
 #include "common/string-helpers.h"
+#include "config/mousebind.h"
 #include "labwc.h"
 #include "menu/menu.h"
 #include "workspaces.h"
@@ -339,6 +340,23 @@ title_create_scene(struct menuitem *menuitem, int *item_y)
 	*item_y += theme->menu_header_height;
 }
 
+#define SCROLL_MAX_ITEMS 10
+
+static void
+update_scroll_area(struct menu *menu)
+{
+	int count = 0;
+	struct menuitem *item;
+	wl_list_for_each(item, &menu->menuitems, link) {
+		count++;
+		if (count <= menu->scroll_offset || count > menu->scroll_offset + SCROLL_MAX_ITEMS) {
+			wlr_scene_node_set_enabled(&item->tree->node, false);
+		} else {
+			wlr_scene_node_set_enabled(&item->tree->node, true);
+		}
+	}
+}
+
 /* (Re)creates the scene of the menu */
 static void
 menu_update_scene(struct menu *menu)
@@ -352,6 +370,7 @@ menu_update_scene(struct menu *menu)
 			item->tree = NULL;
 		}
 	}
+	menu->scroll_offset = 0;
 	menu->scene_tree = wlr_scene_tree_create(menu->server->menu_tree);
 	wlr_scene_node_set_enabled(&menu->scene_tree->node, false);
 
@@ -391,6 +410,7 @@ menu_update_scene(struct menu *menu)
 		theme->menu_border_color);
 	assert(bg_buffer);
 	wlr_scene_node_lower_to_bottom(&bg_buffer->scene_buffer->node);
+	update_scroll_area(menu);
 }
 
 static void
@@ -1783,6 +1803,38 @@ menu_process_cursor_motion(struct wlr_scene_node *node)
 	assert(node && node->data);
 	struct menuitem *item = node_menuitem_from_node(node);
 	menu_process_item_selection(item);
+}
+
+void
+menu_process_cursor_axis(struct wlr_scene_node *node, enum direction direction)
+{
+	assert(node && node->data);
+	struct menuitem *item = node_menuitem_from_node(node);
+	int old_scroll_offset = item->parent->scroll_offset;
+	int new_scroll_offset = old_scroll_offset;
+	switch (direction) {
+	case LAB_DIRECTION_UP:
+		new_scroll_offset--;
+		break;
+	case LAB_DIRECTION_DOWN:
+		new_scroll_offset = MIN(
+			wl_list_length(&item->parent->menuitems) - SCROLL_MAX_ITEMS,
+			old_scroll_offset + 1);
+		break;
+	default:
+		return;
+	}
+	new_scroll_offset = MAX(0, new_scroll_offset);
+	if (new_scroll_offset == old_scroll_offset) {
+		wlr_log(WLR_INFO, "scroll_offset %d not changed", new_scroll_offset);
+		return;
+	}
+	wlr_log(WLR_INFO, "scroll_offset updated to %d", new_scroll_offset);
+	item->parent->scroll_offset = new_scroll_offset;
+	struct wlr_scene_node *menu_node = &item->parent->scene_tree->node;
+	wlr_scene_node_set_position(menu_node, menu_node->x,
+		menu_node->y - (new_scroll_offset - old_scroll_offset) * rc.theme->menu_item_height);
+	update_scroll_area(item->parent);
 }
 
 bool

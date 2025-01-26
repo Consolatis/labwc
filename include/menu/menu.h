@@ -11,6 +11,7 @@ struct wl_list;
 struct wlr_scene_tree;
 struct wlr_scene_node;
 struct scaled_font_buffer;
+enum direction;
 
 enum menuitem_type {
 	LAB_MENU_ITEM = 0,
@@ -57,6 +58,7 @@ struct menu {
 	struct wlr_scene_tree *scene_tree;
 	bool is_pipemenu;
 	bool align_left;
+	int scroll_offset;
 
 	/* Used to match a window-menu to the view that triggered it. */
 	struct view *triggered_by_view;  /* may be NULL */
@@ -98,6 +100,8 @@ void menu_open_root(struct menu *menu, int x, int y);
  * - may open/close submenus
  */
 void menu_process_cursor_motion(struct wlr_scene_node *node);
+
+void menu_process_cursor_axis(struct wlr_scene_node *node, enum direction direction);
 
 /**
  * menu_call_actions - call actions associated with a menu node

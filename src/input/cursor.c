@@ -1324,6 +1324,12 @@ handle_cursor_axis(struct server *server, struct cursor_context *ctx,
 		return false;
 	}
 
+	if (ctx->type == LAB_SSD_MENU) {
+		menu_process_cursor_axis(ctx->node, direction);
+		cursor_set(&server->seat, LAB_CURSOR_DEFAULT);
+		return true;
+	}
+
 	wl_list_for_each(mousebind, &rc.mousebinds, link) {
 		if (ssd_part_contains(mousebind->context, ctx->type)
 				&& mousebind->direction == direction
