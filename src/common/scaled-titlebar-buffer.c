@@ -47,12 +47,14 @@ _create_buffer(struct scaled_scene_buffer *scaled_buffer, double scale)
 	struct lab_data_buffer *buffer = buffer_create_cairo(
 		self->width, self->height, scale);
 
-	int radius = (self->corner_radius * 2 < self->width) ?
-		self->corner_radius : 0;
-
 	if (!buffer) {
 		return NULL;
 	}
+
+	int radius = (self->corner_radius * 2 < self->width && !self->squared_corners) ?
+		self->corner_radius : 0;
+
+	wlr_log(WLR_INFO, "creating new titlebar buffer with corner radius %d", radius);
 
 	cairo_t *cairo = cairo_create(buffer->surface);
 
@@ -105,6 +107,7 @@ _equal(struct scaled_scene_buffer *scaled_buffer_a, struct scaled_scene_buffer *
 		&& a->height == b->height
 		&& a->border_width == b->border_width
 		&& a->corner_radius == b->corner_radius
+		&& a->squared_corners == b->squared_corners
 		&& a->fill_pattern == b->fill_pattern
 		&& !memcmp(a->border_color, b->border_color, sizeof(a->border_color));
 }
@@ -148,6 +151,14 @@ scaled_titlebar_buffer_set_size(struct scaled_titlebar_buffer *self,
 {
 	self->width = width;
 	self->height = height;
+	scaled_scene_buffer_request_update(self->scaled_buffer,
+		self->width, self->height);
+}
+
+void
+scaled_titlebar_buffer_set_square(struct scaled_titlebar_buffer *self, bool enabled)
+{
+	self->squared_corners = enabled;
 	scaled_scene_buffer_request_update(self->scaled_buffer,
 		self->width, self->height);
 }

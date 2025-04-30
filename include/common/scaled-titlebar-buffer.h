@@ -26,6 +26,7 @@ struct scaled_titlebar_buffer {
 	int height;
 	int border_width;
 	int corner_radius;
+	bool squared_corners;
 	cairo_pattern_t *fill_pattern;
 	float border_color[4];
 };
@@ -39,6 +40,8 @@ struct scaled_titlebar_buffer *scaled_titlebar_buffer_create(
 
 void scaled_titlebar_buffer_set_size(struct scaled_titlebar_buffer *self,
 	int width, int height);
+
+void scaled_titlebar_buffer_set_square(struct scaled_titlebar_buffer *self, bool enabled);
 
 struct scaled_titlebar_buffer *scaled_titlebar_buffer_from_node(
 	struct wlr_scene_node *node);

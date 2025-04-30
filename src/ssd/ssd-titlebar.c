@@ -139,6 +139,7 @@ set_squared_corners(struct ssd *ssd, bool enable)
 {
 	struct ssd_part *part;
 	struct ssd_sub_tree *subtree;
+	struct scaled_titlebar_buffer *titlebar_buffer;
 
 	FOR_EACH_STATE(ssd, subtree) {
 		/* (Un)round the corner buttons */
@@ -155,6 +156,9 @@ set_squared_corners(struct ssd *ssd, bool enable)
 			update_button_state(button, LAB_BS_ROUNDED, !enable);
 			break;
 		}
+		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+		titlebar_buffer = scaled_titlebar_buffer_from_node(part->node);
+		scaled_titlebar_buffer_set_square(titlebar_buffer, enable);
 	} FOR_EACH_END
 }
 
