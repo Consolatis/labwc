@@ -22,6 +22,7 @@ enum lab_gradient {
 	LAB_GRADIENT_NONE, /* i.e. Solid */
 	LAB_GRADIENT_VERTICAL,
 	LAB_GRADIENT_SPLITVERTICAL,
+	LAB_GRADIENT_HORIZONTAL,
 };
 
 enum lab_justification {

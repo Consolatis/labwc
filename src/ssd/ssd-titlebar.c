@@ -27,6 +27,83 @@ static void set_squared_corners(struct ssd *ssd, bool enable);
 static void set_alt_button_icon(struct ssd *ssd, enum ssd_part_type type, bool enable);
 static void update_visible_buttons(struct ssd *ssd);
 
+/* horizontal gradient, rendering the whole titlebar at once */
+static void
+ssd_titlebar_bg_create_full(struct ssd *ssd, struct ssd_sub_tree *subtree, int width)
+{
+	struct theme *theme = rc.theme;
+	int active = (subtree == &ssd->titlebar.active) ? THEME_ACTIVE : THEME_INACTIVE;
+
+	struct ssd_part *part =
+		add_scene_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+	struct scaled_titlebar_buffer *titlebar = scaled_titlebar_buffer_create(
+		subtree->tree, width + theme->border_width * 2,
+		theme->titlebar_height + theme->border_width,
+		theme->border_width, rc.corner_radius,
+		theme->window[active].titlebar_pattern,
+		theme->window[active].border_color);
+	wlr_scene_node_set_position(&titlebar->scene_buffer->node,
+		-theme->border_width, -theme->border_width);
+	part->node = &titlebar->scene_buffer->node;
+}
+
+static void
+ssd_titlebar_bg_set_size_full(struct ssd *ssd, struct ssd_sub_tree *subtree, int width, int height)
+{
+	struct theme *theme = rc.theme;
+	struct ssd_part *part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+	struct scaled_titlebar_buffer *titlebar = scaled_titlebar_buffer_from_node(part->node);
+	scaled_titlebar_buffer_set_size(titlebar,
+		width + theme->border_width * 2,
+		height + theme->border_width);
+}
+
+static void
+ssd_titlebar_square_full(struct ssd *ssd, struct ssd_sub_tree *subtree, bool enable)
+{
+	struct ssd_part *part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+	struct scaled_titlebar_buffer *titlebar = scaled_titlebar_buffer_from_node(part->node);
+	scaled_titlebar_buffer_set_square(titlebar, enable);
+}
+
+/* no gradient, rendering two rounded corners + wlr_scene_rect */
+static void
+ssd_titlebar_bg_create_rect(struct ssd *ssd, struct ssd_sub_tree *subtree, int width)
+{
+	// FIXME: rounded corner buffers missing
+	struct theme *theme = rc.theme;
+	int active = (subtree == &ssd->titlebar.active) ? THEME_ACTIVE : THEME_INACTIVE;
+
+	struct ssd_part *part =
+		add_scene_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+	struct wlr_scene_rect *titlebar = wlr_scene_rect_create(
+		subtree->tree, width + theme->border_width * 2,
+		theme->titlebar_height + theme->border_width,
+		theme->window[active].title_bg.color);
+	wlr_scene_node_set_position(&titlebar->node,
+		-theme->border_width, -theme->border_width);
+	part->node = &titlebar->node;
+}
+
+static void
+ssd_titlebar_bg_set_size_rect(struct ssd *ssd, struct ssd_sub_tree *subtree, int width, int height)
+{
+	struct theme *theme = rc.theme;
+	struct ssd_part *part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
+	struct wlr_scene_rect *titlebar_rect = wlr_scene_rect_from_node(part->node);
+	wlr_scene_rect_set_size(titlebar_rect,
+		width + theme->border_width * 2,
+		height + theme->border_width);
+}
+
+static void
+ssd_titlebar_square_rect(struct ssd *ssd, struct ssd_sub_tree *subtree, bool enabled)
+{
+	// FIXME: implement
+	// update position and width + toggle visibility of corner buttons
+}
+
+/* Internal API */
 void
 ssd_titlebar_create(struct ssd *ssd)
 {
@@ -49,19 +126,26 @@ ssd_titlebar_create(struct ssd *ssd)
 		wlr_scene_node_set_position(&parent->node, 0, -theme->titlebar_height);
 		wl_list_init(&subtree->parts);
 
-		struct scaled_titlebar_buffer *titlebar = scaled_titlebar_buffer_create(
-			parent, width + theme->border_width * 2,
-			theme->titlebar_height + theme->border_width,
-			theme->border_width, rc.corner_radius,
-			theme->window[active].titlebar_pattern,
-			theme->window[active].border_color);
-		wlr_scene_node_set_position(&titlebar->scene_buffer->node,
-			-theme->border_width, -theme->border_width);
-
 		/* Background */
-		struct ssd_part *part =
-			add_scene_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
-		part->node = &titlebar->scene_buffer->node;
+		switch (theme->window[active].title_bg.gradient) {
+		case LAB_GRADIENT_HORIZONTAL:
+		case LAB_GRADIENT_VERTICAL:
+		case LAB_GRADIENT_SPLITVERTICAL:
+			ssd->titlebar.background[active] = (struct ssd_title_bg_impl) {
+				.create = ssd_titlebar_bg_create_full,
+				.set_size = ssd_titlebar_bg_set_size_full,
+				.square_corners = ssd_titlebar_square_full
+			};
+			break;
+		case LAB_GRADIENT_NONE:
+			ssd->titlebar.background[active] = (struct ssd_title_bg_impl) {
+				.create = ssd_titlebar_bg_create_rect,
+				.set_size = ssd_titlebar_bg_set_size_rect,
+				.square_corners = ssd_titlebar_square_rect
+			};
+			break;
+		}
+		ssd->titlebar.background[active].create(ssd, subtree, width);
 
 		/* Buttons */
 		struct title_button *b;
@@ -139,7 +223,6 @@ set_squared_corners(struct ssd *ssd, bool enable)
 {
 	struct ssd_part *part;
 	struct ssd_sub_tree *subtree;
-	struct scaled_titlebar_buffer *titlebar_buffer;
 
 	FOR_EACH_STATE(ssd, subtree) {
 		/* (Un)round the corner buttons */
@@ -156,9 +239,9 @@ set_squared_corners(struct ssd *ssd, bool enable)
 			update_button_state(button, LAB_BS_ROUNDED, !enable);
 			break;
 		}
-		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
-		titlebar_buffer = scaled_titlebar_buffer_from_node(part->node);
-		scaled_titlebar_buffer_set_square(titlebar_buffer, enable);
+		int active = (subtree == &ssd->titlebar.active) ?
+			THEME_ACTIVE : THEME_INACTIVE;
+		ssd->titlebar.background[active].square_corners(ssd, subtree, enable);
 	} FOR_EACH_END
 }
 
@@ -279,14 +362,12 @@ ssd_titlebar_update(struct ssd *ssd)
 	struct ssd_part *part;
 	struct ssd_sub_tree *subtree;
 	struct title_button *b;
-	struct scaled_titlebar_buffer *titlebar_buffer;
 
 	FOR_EACH_STATE(ssd, subtree) {
-		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLEBAR);
-		titlebar_buffer = scaled_titlebar_buffer_from_node(part->node);
-		scaled_titlebar_buffer_set_size(titlebar_buffer,
-			width + theme->border_width * 2,
-			theme->titlebar_height + theme->border_width);
+		int active = (subtree == &ssd->titlebar.active) ?
+			THEME_ACTIVE : THEME_INACTIVE;
+		ssd->titlebar.background[active].set_size(ssd, subtree,
+			width, theme->titlebar_height);
 
 		x = theme->window_titlebar_padding_width;
 		wl_list_for_each(b, &rc.title_buttons_left, link) {

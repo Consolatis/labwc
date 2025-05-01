@@ -94,6 +94,12 @@ struct ssd {
 		struct wlr_scene_tree *tree;
 		struct ssd_sub_tree active;
 		struct ssd_sub_tree inactive;
+		struct ssd_title_bg_impl {
+			void (*create)(struct ssd *ssd, struct ssd_sub_tree *subtree, int width);
+			void (*set_size)(struct ssd *ssd, struct ssd_sub_tree *subtree, int width, int height);
+			void (*square_corners)(struct ssd *ssd, struct ssd_sub_tree *subtree, bool enabled);
+			//destroy?
+		} background[2];
 	} titlebar;
 
 	/* Borders allow resizing as well */
