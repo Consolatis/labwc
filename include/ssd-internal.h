@@ -182,4 +182,8 @@ void ssd_shadow_create(struct ssd *ssd);
 void ssd_shadow_update(struct ssd *ssd);
 void ssd_shadow_destroy(struct ssd *ssd);
 
+/* Titlebar background render abstractions */
+struct ssd_title_bg_impl ssd_titlebar_bg_full_init(void);
+struct ssd_title_bg_impl ssd_titlebar_bg_rect_init(void);
+
 #endif /* LABWC_SSD_INTERNAL_H */

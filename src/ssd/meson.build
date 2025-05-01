@@ -3,6 +3,8 @@ labwc_sources += files(
   'ssd.c',
   'ssd-part.c',
   'ssd-titlebar.c',
+  'ssd-titlebar-full.c',
+  'ssd-titlebar-rect.c',
   'ssd-border.c',
   'ssd-extents.c',
   'ssd-shadow.c',
