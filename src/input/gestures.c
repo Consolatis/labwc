@@ -1,9 +1,17 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <wlr/types/wlr_pointer_gestures_v1.h>
+#include "action.h"
 #include "common/macros.h"
+#include "config/mousebind.h"
 #include "input/gestures.h"
 #include "labwc.h"
 #include "idle.h"
+
+static struct {
+	double dx;
+	double dy;
+	uint32_t fingers;
+} swipe_state;
 
 static void
 handle_pinch_begin(struct wl_listener *listener, void *data)
@@ -56,6 +64,10 @@ handle_swipe_begin(struct wl_listener *listener, void *data)
 
 	wlr_pointer_gestures_v1_send_swipe_begin(seat->pointer_gestures,
 		seat->seat, event->time_msec, event->fingers);
+
+	swipe_state.dx = 0;
+	swipe_state.dy = 0;
+	swipe_state.fingers = event->fingers;
 }
 
 static void
@@ -69,6 +81,15 @@ handle_swipe_update(struct wl_listener *listener, void *data)
 
 	wlr_pointer_gestures_v1_send_swipe_update(seat->pointer_gestures,
 		seat->seat, event->time_msec, event->dx, event->dy);
+
+	if (swipe_state.fingers == event->fingers) {
+		swipe_state.dx += event->dx;
+		swipe_state.dy += event->dy;
+	} else {
+		swipe_state.dx = 0;
+		swipe_state.dy = 0;
+	}
+
 }
 
 static void
@@ -82,6 +103,37 @@ handle_swipe_end(struct wl_listener *listener, void *data)
 
 	wlr_pointer_gestures_v1_send_swipe_end(seat->pointer_gestures,
 		seat->seat, event->time_msec, event->cancelled);
+
+	// TODO: check for !event->cancelled ?
+	if (swipe_state.dx || swipe_state.dy) {
+		enum direction direction;
+		if (swipe_state.dx * swipe_state.dx > swipe_state.dy * swipe_state.dy) {
+			direction = swipe_state.dx > 0
+				? LAB_DIRECTION_RIGHT
+				: LAB_DIRECTION_LEFT;
+		} else {
+			direction = swipe_state.dy > 0
+				? LAB_DIRECTION_DOWN
+				: LAB_DIRECTION_UP;
+		}
+		struct mousebind *mousebind;
+		wl_list_for_each(mousebind, &rc.mousebinds, link) {
+			if (mousebind->mouse_event != MOUSE_ACTION_SWIPE) {
+				continue;
+			}
+			if (mousebind->fingers != swipe_state.fingers) {
+				continue;
+			}
+			if (mousebind->direction != direction) {
+				continue;
+			}
+			actions_run(/*view*/ NULL, seat->server,
+				&mousebind->actions, /*cursor_ctx*/ NULL);
+		}
+	}
+	swipe_state.dx = 0;
+	swipe_state.dy = 0;
+	swipe_state.fingers = 0;
 }
 
 static void

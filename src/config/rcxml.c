@@ -622,6 +622,8 @@ fill_mousebind(char *nodename, char *content, struct parser_state *state)
 		/* <mousebind button="" action="EVENT"> */
 		state->current_mousebind->mouse_event =
 			mousebind_event_from_str(content);
+	} else if (!strcmp(nodename, "fingers")) {
+		state->current_mousebind->fingers = atoi(content);
 	} else if (!strcmp(nodename, "name.action")) {
 		state->current_mousebind_action = action_create(content);
 		if (state->current_mousebind_action) {
