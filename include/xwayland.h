@@ -54,6 +54,14 @@ struct xwayland_view {
 	struct wl_listener focus_in;
 	struct wl_listener map_request;
 
+	struct {
+		/*
+		 * TODO: Replace with the wlr_xwayland_surface
+		 *       signal once available via wlroots!5079
+		 */
+		struct wl_signal set_icon;
+	} events;
+
 	/* Not (yet) implemented */
 /*	struct wl_listener set_role; */
 /*	struct wl_listener set_hints; */
