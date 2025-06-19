@@ -17,6 +17,7 @@
 #include "common/font.h"
 #include "common/lab-scene-rect.h"
 #include "common/list.h"
+#include "common/log.h"
 #include "common/macros.h"
 #include "common/mem.h"
 #include "common/nodename.h"
@@ -75,7 +76,7 @@ static struct menu *
 menu_create(struct server *server, const char *id, const char *label)
 {
 	if (!is_unique_id(server, id)) {
-		wlr_log(WLR_ERROR, "menu id %s already exists", id);
+		nag_log(WLR_ERROR, "menu id %s already exists", id);
 	}
 
 	struct menu *menu = znew(*menu);
@@ -115,12 +116,12 @@ validate_menu(struct menu *menu)
 			bool is_show_menu = action_is_show_menu(action);
 			if (!action_is_valid(action) || is_show_menu) {
 				if (is_show_menu) {
-					wlr_log(WLR_ERROR, "'ShowMenu' action is"
+					nag_log(WLR_ERROR, "'ShowMenu' action is"
 						" not allowed in menu items");
 				}
 				wl_list_remove(&action->link);
 				action_free(action);
-				wlr_log(WLR_ERROR, "Removed invalid menu action");
+				nag_log(WLR_ERROR, "Removed invalid menu action");
 			}
 		}
 	}
@@ -181,7 +182,7 @@ item_create_scene_for_state(struct menuitem *item, float *text_color,
 		- arrow_width - icon_width;
 
 	if (label_max_width <= 0) {
-		wlr_log(WLR_ERROR, "not enough space for menu contents");
+		nag_log(WLR_ERROR, "not enough space for menu contents");
 		return tree;
 	}
 
@@ -302,7 +303,7 @@ separator_create_scene(struct menuitem *menuitem, int *item_y)
 	int line_width = bg_width - 2 * theme->menu_separator_padding_width;
 
 	if (line_width <= 0) {
-		wlr_log(WLR_ERROR, "not enough space for menu separator");
+		nag_log(WLR_ERROR, "not enough space for menu separator");
 		goto error;
 	}
 
@@ -348,7 +349,7 @@ title_create_scene(struct menuitem *menuitem, int *item_y)
 	int text_width = bg_width - 2 * theme->menu_items_padding_x;
 
 	if (text_width <= 0) {
-		wlr_log(WLR_ERROR, "not enough space for menu title");
+		nag_log(WLR_ERROR, "not enough space for menu title");
 		goto error;
 	}
 
@@ -482,7 +483,7 @@ fill_item(char *nodename, char *content)
 		current_item = item_create(current_menu, content, false);
 		current_item_action = NULL;
 	} else if (!current_item) {
-		wlr_log(WLR_ERROR, "expect <item label=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <item label=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else if (!strcmp(nodename, "icon")) {
 #if HAVE_LIBSFDO
@@ -498,7 +499,7 @@ fill_item(char *nodename, char *content)
 				&current_item_action->link);
 		}
 	} else if (!current_item_action) {
-		wlr_log(WLR_ERROR, "expect <action name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <action name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else {
 		action_arg_from_xml_node(current_item_action, nodename, content);
@@ -623,7 +624,7 @@ handle_menu_element(xmlNode *n, struct server *server)
 	char *id = (char *)xmlGetProp(n, (const xmlChar *)"id");
 
 	if (!id) {
-		wlr_log(WLR_ERROR, "<menu> without id is not allowed");
+		nag_log(WLR_ERROR, "<menu> without id is not allowed");
 		goto error;
 	}
 
@@ -696,21 +697,21 @@ handle_menu_element(xmlNode *n, struct server *server)
 		 */
 
 		if (waiting_for_pipe_menu) {
-			wlr_log(WLR_ERROR,
+			nag_log(WLR_ERROR,
 				"cannot link to static menu from pipemenu");
 			goto error;
 		}
 
 		struct menu *menu = menu_get_by_id(server, id);
 		if (!menu) {
-			wlr_log(WLR_ERROR, "no menu with id '%s'", id);
+			nag_log(WLR_ERROR, "no menu with id '%s'", id);
 			goto error;
 		}
 
 		struct menu *iter = current_menu;
 		while (iter) {
 			if (iter == menu) {
-				wlr_log(WLR_ERROR, "menus with the same id '%s' "
+				nag_log(WLR_ERROR, "menus with the same id '%s' "
 					"cannot be nested", id);
 				goto error;
 			}
@@ -754,7 +755,7 @@ xml_tree_walk(xmlNode *node, struct server *server)
 		}
 		if (!strcasecmp((char *)n->name, "item")) {
 			if (!current_menu) {
-				wlr_log(WLR_ERROR,
+				nag_log(WLR_ERROR,
 					"ignoring <item> without parent <menu>");
 				continue;
 			}
@@ -773,7 +774,7 @@ parse_buf(struct server *server, struct buf *buf)
 	int options = 0;
 	xmlDoc *d = xmlReadMemory(buf->data, buf->len, NULL, NULL, options);
 	if (!d) {
-		wlr_log(WLR_ERROR, "xmlParseMemory()");
+		nag_log(WLR_ERROR, "xmlParseMemory()");
 		return false;
 	}
 	xml_tree_walk(xmlDocGetRootElement(d), server);
@@ -859,7 +860,7 @@ menu_reposition(struct menu *menu, struct wlr_box anchor_rect)
 	struct output *output = output_nearest_to(menu->server,
 		anchor_rect.x, anchor_rect.y);
 	if (!output) {
-		wlr_log(WLR_ERROR, "no output found around (%d,%d)",
+		nag_log(WLR_ERROR, "no output found around (%d,%d)",
 			anchor_rect.x, anchor_rect.y);
 		return;
 	}
@@ -1274,7 +1275,7 @@ static void
 menu_close(struct menu *menu)
 {
 	if (!menu) {
-		wlr_log(WLR_ERROR, "Trying to close non exiting menu");
+		nag_log(WLR_ERROR, "Trying to close non exiting menu");
 		return;
 	}
 	_close(menu);
@@ -1360,7 +1361,7 @@ static int
 handle_pipemenu_timeout(void *_ctx)
 {
 	struct menu_pipe_context *ctx = _ctx;
-	wlr_log(WLR_ERROR, "[pipemenu %ld] timeout reached, killing %s",
+	nag_log(WLR_ERROR, "[pipemenu %ld] timeout reached, killing %s",
 		(long)ctx->pid, ctx->pipemenu->execute);
 	kill(ctx->pid, SIGTERM);
 	pipemenu_ctx_destroy(ctx);
@@ -1388,7 +1389,7 @@ handle_pipemenu_readable(int fd, uint32_t mask, void *_ctx)
 
 	/* Limit pipemenu buffer to 1 MiB for safety */
 	if (ctx->buf.len + size > PIPEMENU_MAX_BUF_SIZE) {
-		wlr_log(WLR_ERROR, "[pipemenu %ld] too big (> %d bytes); killing %s",
+		nag_log(WLR_ERROR, "[pipemenu %ld] too big (> %d bytes); killing %s",
 			(long)ctx->pid, PIPEMENU_MAX_BUF_SIZE,
 			ctx->pipemenu->execute);
 		kill(ctx->pid, SIGTERM);
@@ -1404,7 +1405,7 @@ handle_pipemenu_readable(int fd, uint32_t mask, void *_ctx)
 
 	/* Guard against badly formed data such as binary input */
 	if (!str_starts_with(ctx->buf.data, '<', " \t\r\n")) {
-		wlr_log(WLR_ERROR, "expect xml data to start with '<'; abort pipemenu");
+		nag_log(WLR_ERROR, "expect xml data to start with '<'; abort pipemenu");
 		goto clean_up;
 	}
 
@@ -1426,7 +1427,7 @@ open_pipemenu_async(struct menu *pipemenu, struct wlr_box anchor_rect)
 	int pipe_fd = 0;
 	pid_t pid = spawn_pipe_reader(pipemenu->execute, &pipe_fd);
 	if (pid <= 0) {
-		wlr_log(WLR_ERROR, "Failed to spawn pipe menu process %s",
+		nag_log(WLR_ERROR, "Failed to spawn pipe menu process %s",
 			pipemenu->execute);
 		return;
 	}

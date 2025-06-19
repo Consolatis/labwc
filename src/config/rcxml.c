@@ -17,6 +17,7 @@
 #include "action.h"
 #include "common/dir.h"
 #include "common/list.h"
+#include "common/log.h"
 #include "common/macros.h"
 #include "common/mem.h"
 #include "common/nodename.h"
@@ -36,7 +37,6 @@
 #include "view.h"
 #include "window-rules.h"
 #include "workspaces.h"
-
 struct parser_state {
 	bool in_regions;
 	bool in_usable_area_override;
@@ -158,7 +158,7 @@ fill_section(const char *content, struct wl_list *list, uint32_t *found_buttons)
 #if HAVE_LIBSFDO
 			type = LAB_SSD_BUTTON_WINDOW_ICON;
 #else
-			wlr_log(WLR_ERROR, "libsfdo is not linked. "
+			nag_log(WLR_ERROR, "libsfdo is not linked. "
 				"Replacing 'icon' in titlebar layout with 'menu'.");
 			type = LAB_SSD_BUTTON_WINDOW_MENU;
 #endif
@@ -175,7 +175,7 @@ fill_section(const char *content, struct wl_list *list, uint32_t *found_buttons)
 		} else if (!strcmp(identifier, "desk")) {
 			type = LAB_SSD_BUTTON_OMNIPRESENT;
 		} else {
-			wlr_log(WLR_ERROR, "invalid titleLayout identifier '%s'",
+			nag_log(WLR_ERROR, "invalid titleLayout identifier '%s'",
 				identifier);
 			continue;
 		}
@@ -183,7 +183,7 @@ fill_section(const char *content, struct wl_list *list, uint32_t *found_buttons)
 		assert(type != LAB_SSD_NONE);
 
 		if (*found_buttons & (1 << type)) {
-			wlr_log(WLR_ERROR, "ignoring duplicated button type '%s'",
+			nag_log(WLR_ERROR, "ignoring duplicated button type '%s'",
 				identifier);
 			continue;
 		}
@@ -225,7 +225,7 @@ fill_title_layout(char *content)
 	gchar **parts = g_strsplit(content, ":", -1);
 
 	if (g_strv_length(parts) != 2) {
-		wlr_log(WLR_ERROR, "<titlebar><layout> must contain one colon");
+		nag_log(WLR_ERROR, "<titlebar><layout> must contain one colon");
 		goto err;
 	}
 
@@ -252,7 +252,7 @@ fill_usable_area_override(char *nodename, char *content, struct parser_state *st
 	if (!content) {
 		/* nop */
 	} else if (!state->current_usable_area_override) {
-		wlr_log(WLR_ERROR, "no usable-area-override object");
+		nag_log(WLR_ERROR, "no usable-area-override object");
 	} else if (!strcmp(nodename, "output")) {
 		xstrdup_replace(state->current_usable_area_override->output, content);
 	} else if (!strcmp(nodename, "left")) {
@@ -264,7 +264,7 @@ fill_usable_area_override(char *nodename, char *content, struct parser_state *st
 	} else if (!strcmp(nodename, "bottom")) {
 		state->current_usable_area_override->margin.bottom = atoi(content);
 	} else {
-		wlr_log(WLR_ERROR, "Unexpected data usable-area-override parser: %s=\"%s\"",
+		nag_log(WLR_ERROR, "Unexpected data usable-area-override parser: %s=\"%s\"",
 			nodename, content);
 	}
 }
@@ -299,7 +299,7 @@ fill_window_rule(char *nodename, char *content, struct parser_state *state)
 	if (!content) {
 		/* nop */
 	} else if (!state->current_window_rule) {
-		wlr_log(WLR_ERROR, "no window-rule");
+		nag_log(WLR_ERROR, "no window-rule");
 
 	/* Criteria */
 	} else if (!strcmp(nodename, "identifier")) {
@@ -347,7 +347,7 @@ fill_window_rule(char *nodename, char *content, struct parser_state *state)
 				&state->current_window_rule_action->link);
 		}
 	} else if (!state->current_window_rule_action) {
-		wlr_log(WLR_ERROR, "expect <action name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <action name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else {
 		action_arg_from_xml_node(state->current_window_rule_action, nodename, content);
@@ -377,7 +377,7 @@ fill_window_switcher_field(char *nodename, char *content, struct parser_state *s
 	if (!content) {
 		/* intentionally left empty */
 	} else if (!state->current_field) {
-		wlr_log(WLR_ERROR, "no <field>");
+		nag_log(WLR_ERROR, "no <field>");
 	} else {
 		osd_field_arg_from_xml_node(state->current_field, nodename, content);
 	}
@@ -394,7 +394,7 @@ fill_region(char *nodename, char *content, struct parser_state *state)
 	} else if (!content) {
 		/* intentionally left empty */
 	} else if (!state->current_region) {
-		wlr_log(WLR_ERROR, "Expecting <region name=\"\" before %s='%s'",
+		nag_log(WLR_ERROR, "Expecting <region name=\"\" before %s='%s'",
 			nodename, content);
 	} else if (!strcasecmp(nodename, "name")) {
 		/* Prevent leaking memory if config contains multiple names */
@@ -402,7 +402,7 @@ fill_region(char *nodename, char *content, struct parser_state *state)
 			state->current_region->name = xstrdup(content);
 		}
 	} else if (strstr("xywidtheight", nodename) && !strchr(content, '%')) {
-		wlr_log(WLR_ERROR, "Removing invalid region '%s': %s='%s' misses"
+		nag_log(WLR_ERROR, "Removing invalid region '%s': %s='%s' misses"
 			" a trailing %%", state->current_region->name, nodename, content);
 		wl_list_remove(&state->current_region->link);
 		zfree(state->current_region->name);
@@ -416,7 +416,7 @@ fill_region(char *nodename, char *content, struct parser_state *state)
 	} else if (!strcmp(nodename, "height")) {
 		state->current_region->percentage.height = atoi(content);
 	} else {
-		wlr_log(WLR_ERROR, "Unexpected data in region parser: %s=\"%s\"",
+		nag_log(WLR_ERROR, "Unexpected data in region parser: %s=\"%s\"",
 			nodename, content);
 	}
 }
@@ -425,7 +425,7 @@ static void
 fill_action_query(char *nodename, char *content, struct action *action, struct parser_state *state)
 {
 	if (!action) {
-		wlr_log(WLR_ERROR, "No parent action for query: %s=%s", nodename, content);
+		nag_log(WLR_ERROR, "No parent action for query: %s=%s", nodename, content);
 		return;
 	}
 
@@ -490,7 +490,7 @@ fill_child_action(char *nodename, char *content, struct action *parent,
 	const char *branch_name, struct parser_state *state)
 {
 	if (!parent) {
-		wlr_log(WLR_ERROR, "No parent action for branch: %s=%s", nodename, content);
+		nag_log(WLR_ERROR, "No parent action for branch: %s=%s", nodename, content);
 		return;
 	}
 
@@ -516,7 +516,7 @@ fill_child_action(char *nodename, char *content, struct action *parent,
 
 	if (!strcasecmp(nodename, "name.action")) {
 		if (!strcasecmp(content, "If") || !strcasecmp(content, "ForEach")) {
-			wlr_log(WLR_ERROR, "action '%s' cannot be a child action", content);
+			nag_log(WLR_ERROR, "action '%s' cannot be a child action", content);
 			return;
 		}
 		state->current_child_action = action_create(content);
@@ -524,7 +524,7 @@ fill_child_action(char *nodename, char *content, struct action *parent,
 			wl_list_append(siblings, &state->current_child_action->link);
 		}
 	} else if (!state->current_child_action) {
-		wlr_log(WLR_ERROR, "expect <action name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <action name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else {
 		action_arg_from_xml_node(state->current_child_action, nodename, content);
@@ -546,11 +546,11 @@ fill_keybind(char *nodename, char *content, struct parser_state *state)
 		 * keybind_create() complains.
 		 */
 		if (!state->current_keybind) {
-			wlr_log(WLR_ERROR, "Invalid keybind: %s", content);
+			nag_log(WLR_ERROR, "Invalid keybind: %s", content);
 			return;
 		}
 	} else if (!state->current_keybind) {
-		wlr_log(WLR_ERROR, "expect <keybind key=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <keybind key=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else if (!strcasecmp(nodename, "onRelease")) {
 		set_bool(content, &state->current_keybind->on_release);
@@ -565,7 +565,7 @@ fill_keybind(char *nodename, char *content, struct parser_state *state)
 				&state->current_keybind_action->link);
 		}
 	} else if (!state->current_keybind_action) {
-		wlr_log(WLR_ERROR, "expect <action name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <action name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else {
 		/*
@@ -590,7 +590,7 @@ fill_mousebind(char *nodename, char *content, struct parser_state *state)
 	 */
 
 	if (!state->current_mouse_context) {
-		wlr_log(WLR_ERROR, "expect <context name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <context name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 		return;
 	} else if (!strcmp(nodename, "mousebind.context.mouse")) {
@@ -605,7 +605,7 @@ fill_mousebind(char *nodename, char *content, struct parser_state *state)
 
 	string_truncate_at_pattern(nodename, ".mousebind.context.mouse");
 	if (!state->current_mousebind) {
-		wlr_log(WLR_ERROR,
+		nag_log(WLR_ERROR,
 			"expect <mousebind button=\"\" action=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else if (!strcmp(nodename, "button")) {
@@ -625,7 +625,7 @@ fill_mousebind(char *nodename, char *content, struct parser_state *state)
 				&state->current_mousebind_action->link);
 		}
 	} else if (!state->current_mousebind_action) {
-		wlr_log(WLR_ERROR, "expect <action name=\"\"> element first. "
+		nag_log(WLR_ERROR, "expect <action name=\"\"> element first. "
 			"nodename: '%s' content: '%s'", nodename, content);
 	} else {
 		action_arg_from_xml_node(state->current_mousebind_action, nodename, content);
@@ -652,7 +652,7 @@ fill_touch(char *nodename, char *content, struct parser_state *state)
 	} else if (!strcasecmp(nodename, "mouseEmulation.touch")) {
 		set_bool(content, &state->current_touch->force_mouse_emulation);
 	} else {
-		wlr_log(WLR_ERROR, "Unexpected data in touch parser: %s=\"%s\"",
+		nag_log(WLR_ERROR, "Unexpected data in touch parser: %s=\"%s\"",
 			nodename, content);
 	}
 }
@@ -760,7 +760,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			state->current_libinput_category->tap_button_map =
 				LIBINPUT_CONFIG_TAP_MAP_LMR;
 		} else {
-			wlr_log(WLR_ERROR, "invalid tapButtonMap");
+			nag_log(WLR_ERROR, "invalid tapButtonMap");
 		}
 	} else if (!strcasecmp(nodename, "tapAndDrag")) {
 		int ret = parse_bool(content, -1);
@@ -776,7 +776,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			state->current_libinput_category->drag_lock =
 				LIBINPUT_CONFIG_DRAG_LOCK_ENABLED_STICKY;
 #else
-			wlr_log(WLR_ERROR, "<dragLock>sticky</dragLock> is"
+			nag_log(WLR_ERROR, "<dragLock>sticky</dragLock> is"
 				" only supported in libinput >= 1.27");
 #endif
 			return;
@@ -806,7 +806,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 				: LIBINPUT_CONFIG_3FG_DRAG_DISABLED;
 		}
 #else
-		wlr_log(WLR_ERROR, "<threeFingerDrag> is only"
+		nag_log(WLR_ERROR, "<threeFingerDrag> is only"
 			" supported in libinput >= 1.28");
 #endif
 	} else if (!strcasecmp(nodename, "accelProfile")) {
@@ -839,7 +839,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			state->current_libinput_category->click_method =
 				LIBINPUT_CONFIG_CLICK_METHOD_BUTTON_AREAS;
 		} else {
-			wlr_log(WLR_ERROR, "invalid clickMethod");
+			nag_log(WLR_ERROR, "invalid clickMethod");
 		}
 	} else if (!strcasecmp(nodename, "scrollMethod")) {
 		if (!strcasecmp(content, "none")) {
@@ -852,7 +852,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			state->current_libinput_category->scroll_method =
 				LIBINPUT_CONFIG_SCROLL_2FG;
 		} else {
-			wlr_log(WLR_ERROR, "invalid scrollMethod");
+			nag_log(WLR_ERROR, "invalid scrollMethod");
 		}
 	} else if (!strcasecmp(nodename, "sendEventsMode")) {
 		state->current_libinput_category->send_events_mode =
@@ -867,7 +867,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			char *end_str = NULL;
 			mat[i] = strtof(elements[i], &end_str);
 			if (errno == ERANGE || *end_str != '\0' || i == 6 || *elements[i] == '\0') {
-				wlr_log(WLR_ERROR, "invalid calibration matrix element"
+				nag_log(WLR_ERROR, "invalid calibration matrix element"
 									" %s (index %d), expect six floats",
 									elements[i], i);
 				state->current_libinput_category->have_calibration_matrix = false;
@@ -876,7 +876,7 @@ fill_libinput_category(char *nodename, char *content, struct parser_state *state
 			}
 		}
 		if (i != 6 && state->current_libinput_category->have_calibration_matrix) {
-			wlr_log(WLR_ERROR, "wrong number of calibration matrix elements,"
+			nag_log(WLR_ERROR, "wrong number of calibration matrix elements,"
 								" expected 6, got %d", i);
 			state->current_libinput_category->have_calibration_matrix = false;
 		}
@@ -1139,7 +1139,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 	if (!strcmp(nodename, "place.font.theme")) {
 		font_place = enum_font_place(content);
 		if (font_place == FONT_PLACE_UNKNOWN) {
-			wlr_log(WLR_ERROR, "invalid font place %s", content);
+			nag_log(WLR_ERROR, "invalid font place %s", content);
 		}
 	}
 
@@ -1209,7 +1209,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 		if (doubleclick_time_parsed > 0) {
 			rc.doubleclick_time = doubleclick_time_parsed;
 		} else {
-			wlr_log(WLR_ERROR, "invalid doubleClickTime");
+			nag_log(WLR_ERROR, "invalid doubleClickTime");
 		}
 	} else if (!strcasecmp(nodename, "scrollFactor.mouse")) {
 		/* This is deprecated. Show an error message in post_processing() */
@@ -1261,7 +1261,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 		} else if (!strcasecmp(content, "never")) {
 			rc.snap_tiling_events_mode = LAB_TILING_EVENTS_NEVER;
 		} else {
-			wlr_log(WLR_ERROR, "ignoring invalid value for notifyClient");
+			nag_log(WLR_ERROR, "ignoring invalid value for notifyClient");
 		}
 
 	/* <windowSwitcher show="" preview="" outlines="" /> */
@@ -1279,7 +1279,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 
 	/* Remove this long term - just a friendly warning for now */
 	} else if (strstr(nodename, "windowswitcher.core")) {
-		wlr_log(WLR_ERROR, "<windowSwitcher> should not be child of <core>");
+		nag_log(WLR_ERROR, "<windowSwitcher> should not be child of <core>");
 
 	/* The following three are for backward compatibility only */
 	} else if (!strcasecmp(nodename, "show.windowSwitcher.core")) {
@@ -1292,15 +1292,15 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 	/* The following three are for backward compatibility only */
 	} else if (!strcasecmp(nodename, "cycleViewOSD.core")) {
 		set_bool(content, &rc.window_switcher.show);
-		wlr_log(WLR_ERROR, "<cycleViewOSD> is deprecated."
+		nag_log(WLR_ERROR, "<cycleViewOSD> is deprecated."
 			" Use <windowSwitcher show=\"\" />");
 	} else if (!strcasecmp(nodename, "cycleViewPreview.core")) {
 		set_bool(content, &rc.window_switcher.preview);
-		wlr_log(WLR_ERROR, "<cycleViewPreview> is deprecated."
+		nag_log(WLR_ERROR, "<cycleViewPreview> is deprecated."
 			" Use <windowSwitcher preview=\"\" />");
 	} else if (!strcasecmp(nodename, "cycleViewOutlines.core")) {
 		set_bool(content, &rc.window_switcher.outlines);
-		wlr_log(WLR_ERROR, "<cycleViewOutlines> is deprecated."
+		nag_log(WLR_ERROR, "<cycleViewOutlines> is deprecated."
 			" Use <windowSwitcher outlines=\"\" />");
 
 	} else if (!strcasecmp(nodename, "name.names.desktops")) {
@@ -1319,7 +1319,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 		} else if (!strcasecmp(content, "Nonpixel")) {
 			rc.resize_indicator = LAB_RESIZE_INDICATOR_NON_PIXEL;
 		} else {
-			wlr_log(WLR_ERROR, "Invalid value for <resize popupShow />");
+			nag_log(WLR_ERROR, "Invalid value for <resize popupShow />");
 		}
 	} else if (!strcasecmp(nodename, "drawContents.resize")) {
 		set_bool(content, &rc.resize_draw_contents);
@@ -1350,7 +1350,7 @@ entry(xmlNode *node, char *nodename, char *content, struct parser_state *state)
 				tablet_button_mapping_add(button_map_from, button_map_to);
 			}
 		} else {
-			wlr_log(WLR_ERROR, "Missing 'button' argument for tablet button mapping");
+			nag_log(WLR_ERROR, "Missing 'button' argument for tablet button mapping");
 		}
 	} else if (!strcasecmp(nodename, "motion.tabletTool")) {
 		rc.tablet_tool.motion = tablet_parse_motion(content);
@@ -1496,7 +1496,7 @@ rcxml_parse_xml(struct buf *b)
 	int options = 0;
 	xmlDoc *d = xmlReadMemory(b->data, b->len, NULL, NULL, options);
 	if (!d) {
-		wlr_log(WLR_ERROR, "error parsing config file");
+		nag_log(WLR_ERROR, "error parsing config file");
 		return;
 	}
 	struct parser_state init_state = {0};
@@ -1845,7 +1845,7 @@ post_processing(void)
 		assert(l && libinput_category_get_default() == l);
 	}
 	if (mouse_scroll_factor >= 0) {
-		wlr_log(WLR_ERROR, "<mouse><scrollFactor> is deprecated"
+		nag_log(WLR_ERROR, "<mouse><scrollFactor> is deprecated"
 				" and overwrites <libinput><scrollFactor>."
 				" Use only <libinput><scrollFactor>.");
 		struct libinput_category *l;
@@ -1906,7 +1906,7 @@ validate_actions(void)
 			if (!action_is_valid(action)) {
 				wl_list_remove(&action->link);
 				action_free(action);
-				wlr_log(WLR_ERROR, "Removed invalid keybind action");
+				nag_log(WLR_ERROR, "Removed invalid keybind action");
 			}
 		}
 	}
@@ -1917,7 +1917,7 @@ validate_actions(void)
 			if (!action_is_valid(action)) {
 				wl_list_remove(&action->link);
 				action_free(action);
-				wlr_log(WLR_ERROR, "Removed invalid mousebind action");
+				nag_log(WLR_ERROR, "Removed invalid mousebind action");
 			}
 		}
 	}
@@ -1928,7 +1928,7 @@ validate_actions(void)
 			if (!action_is_valid(action)) {
 				wl_list_remove(&action->link);
 				action_free(action);
-				wlr_log(WLR_ERROR, "Removed invalid window rule action");
+				nag_log(WLR_ERROR, "Removed invalid window rule action");
 			}
 		}
 	}
@@ -1947,7 +1947,7 @@ validate(void)
 			|| box.width <= 0 || box.width > 100
 			|| box.height <= 0 || box.height > 100;
 		if (invalid) {
-			wlr_log(WLR_ERROR,
+			nag_log(WLR_ERROR,
 				"Removing invalid region '%s': %d%% x %d%% @ %d%%,%d%%",
 				region->name, box.width, box.height, box.x, box.y);
 			wl_list_remove(&region->link);
@@ -1961,7 +1961,7 @@ validate(void)
 	wl_list_for_each_safe(rule, rule_tmp, &rc.window_rules, link) {
 		if (!rule->identifier && !rule->title && rule->window_type < 0
 				&& !rule->sandbox_engine && !rule->sandbox_app_id) {
-			wlr_log(WLR_ERROR, "Deleting rule %p as it has no criteria", rule);
+			nag_log(WLR_ERROR, "Deleting rule %p as it has no criteria", rule);
 			rule_destroy(rule);
 		}
 	}
@@ -1974,7 +1974,7 @@ validate(void)
 	wl_list_for_each_safe(field, field_tmp, &rc.window_switcher.fields, link) {
 		field_width_sum += field->width;
 		if (!osd_field_is_valid(field) || field_width_sum > 100) {
-			wlr_log(WLR_ERROR, "Deleting invalid window switcher field %p", field);
+			nag_log(WLR_ERROR, "Deleting invalid window switcher field %p", field);
 			wl_list_remove(&field->link);
 			osd_field_free(field);
 		}

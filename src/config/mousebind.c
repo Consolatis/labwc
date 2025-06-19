@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <wlr/util/log.h>
 #include "common/list.h"
+#include "common/log.h"
 #include "common/mem.h"
 #include "config/mousebind.h"
 #include "config/rcxml.h"
@@ -46,7 +47,7 @@ mousebind_button_from_str(const char *str, uint32_t *modifiers)
 		return BTN_TASK;
 	}
 invalid:
-	wlr_log(WLR_ERROR, "unknown button (%s)", str);
+	nag_log(WLR_ERROR, "unknown button (%s)", str);
 	return UINT32_MAX;
 }
 
@@ -78,7 +79,7 @@ mousebind_direction_from_str(const char *str, uint32_t *modifiers)
 		return LAB_DIRECTION_DOWN;
 	}
 invalid:
-	wlr_log(WLR_ERROR, "unknown direction (%s)", str);
+	nag_log(WLR_ERROR, "unknown direction (%s)", str);
 	return LAB_DIRECTION_INVALID;
 }
 
@@ -99,7 +100,7 @@ mousebind_event_from_str(const char *str)
 	} else if (!strcasecmp(str, "scroll")) {
 		return MOUSE_ACTION_SCROLL;
 	}
-	wlr_log(WLR_ERROR, "unknown mouse action (%s)", str);
+	nag_log(WLR_ERROR, "unknown mouse action (%s)", str);
 	return MOUSE_ACTION_NONE;
 }
 
@@ -151,7 +152,7 @@ context_from_str(const char *str)
 	} else if (!strcasecmp(str, "All")) {
 		return LAB_SSD_ALL;
 	}
-	wlr_log(WLR_ERROR, "unknown mouse context (%s)", str);
+	nag_log(WLR_ERROR, "unknown mouse context (%s)", str);
 	return LAB_SSD_NONE;
 }
 
@@ -170,7 +171,7 @@ struct mousebind *
 mousebind_create(const char *context)
 {
 	if (!context) {
-		wlr_log(WLR_ERROR, "mousebind context not specified");
+		nag_log(WLR_ERROR, "mousebind context not specified");
 		return NULL;
 	}
 	struct mousebind *m = znew(*m);
