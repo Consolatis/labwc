@@ -126,7 +126,7 @@ spawn_primary_client(const char *command)
 }
 
 pid_t
-spawn_piped(const char *command, int *pipe_fd)
+spawn_pipe_reader(const char *command, int *pipe_fd)
 {
 	assert(command);
 
@@ -190,11 +190,4 @@ spawn_piped(const char *command, int *pipe_fd)
 
 	*pipe_fd = pipe_rw[0];
 	return pid;
-}
-
-void
-spawn_piped_close(pid_t pid, int pipe_fd)
-{
-	close(pipe_fd);
-	/* waitpid() is done in a generic SIGCHLD handler in src/server.c */
 }

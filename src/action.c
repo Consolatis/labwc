@@ -820,7 +820,7 @@ action_prompt_create(struct view *view, struct server *server, struct action *ac
 		_("Yes"), _("No"));
 
 	int pipe_fd;
-	pid_t prompt_pid = spawn_piped(command, &pipe_fd);
+	pid_t prompt_pid = spawn_pipe_reader(command, &pipe_fd);
 	if (prompt_pid < 0) {
 		wlr_log(WLR_ERROR, "Failed to create action prompt");
 		goto cleanup;
