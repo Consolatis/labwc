@@ -9,6 +9,7 @@ labwc_sources += files(
   'grab-file.c',
   'graphic-helpers.c',
   'lab-scene-rect.c',
+  'log.c',
   'match.c',
   'mem.c',
   'nodename.c',
