@@ -1354,7 +1354,7 @@ pipemenu_ctx_destroy(struct menu_pipe_context *ctx)
 {
 	wl_event_source_remove(ctx->event_read);
 	wl_event_source_remove(ctx->event_timeout);
-	spawn_piped_close(ctx->pid, ctx->pipe_fd);
+	close(ctx->pipe_fd);
 	buf_reset(&ctx->buf);
 	if (ctx->pipemenu) {
 		ctx->pipemenu->pipe_ctx = NULL;
@@ -1431,7 +1431,7 @@ open_pipemenu_async(struct menu *pipemenu, struct wlr_box anchor_rect)
 	assert(!pipemenu->scene_tree);
 
 	int pipe_fd = 0;
-	pid_t pid = spawn_piped(pipemenu->execute, &pipe_fd);
+	pid_t pid = spawn_pipe_reader(pipemenu->execute, &pipe_fd);
 	if (pid <= 0) {
 		wlr_log(WLR_ERROR, "Failed to spawn pipe menu process %s",
 			pipemenu->execute);
