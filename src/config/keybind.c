@@ -7,6 +7,7 @@
 #include <string.h>
 #include <wlr/util/log.h>
 #include "common/list.h"
+#include "common/log.h"
 #include "common/mem.h"
 #include "config/keybind.h"
 #include "config/rcxml.h"
@@ -75,7 +76,7 @@ update_keycodes_iter(struct xkb_keymap *keymap, xkb_keycode_t key, void *data)
 				}
 				/* Found keycode for sym */
 				if (keybind->keycodes_len == MAX_KEYCODES) {
-					wlr_log(WLR_ERROR,
+					nag_log(WLR_ERROR,
 						"Already stored %lu keycodes for keybind",
 						keybind->keycodes_len);
 					break;
@@ -163,7 +164,7 @@ keybind_create(const char *keybind)
 			}
 			sym = xkb_keysym_to_lower(sym);
 			if (sym == XKB_KEY_NoSymbol) {
-				wlr_log(WLR_ERROR, "unknown keybind (%s)", symname);
+				nag_log(WLR_ERROR, "unknown keybind (%s)", symname);
 				free(k);
 				k = NULL;
 				break;
@@ -171,9 +172,9 @@ keybind_create(const char *keybind)
 			keysyms[k->keysyms_len] = sym;
 			k->keysyms_len++;
 			if (k->keysyms_len == MAX_KEYSYMS) {
-				wlr_log(WLR_ERROR, "There are a lot of fingers involved. "
+				nag_log(WLR_ERROR, "There are a lot of fingers involved. "
 					"We stopped counting at %u.", MAX_KEYSYMS);
-				wlr_log(WLR_ERROR, "Offending keybind was %s", keybind);
+				nag_log(WLR_ERROR, "Offending keybind was %s", keybind);
 				break;
 			}
 		}

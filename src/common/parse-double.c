@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <wlr/util/log.h>
+#include "common/log.h"
 #include "common/mem.h"
 #include "common/parse-double.h"
 
@@ -55,12 +56,12 @@ convert_double(const char *str)
 	result.value = strtod(str, &eptr);
 
 	if (errno) {
-		wlr_log(WLR_ERROR, "value '%s' is out of range", str);
+		nag_log(WLR_ERROR, "value '%s' is out of range", str);
 		result.valid = false;
 	}
 
 	if (*eptr) {
-		wlr_log(WLR_ERROR, "value '%s' contains trailing garbage", str);
+		nag_log(WLR_ERROR, "value '%s' contains trailing garbage", str);
 		result.valid = false;
 	}
 
@@ -75,7 +76,7 @@ set_double(const char *str, double *val)
 
 	struct dec_separator dloc = find_dec_separator(str);
 	if (dloc.multiple) {
-		wlr_log(WLR_ERROR,
+		nag_log(WLR_ERROR,
 			"value '%s' contains multiple decimal markers", str);
 		return false;
 	}

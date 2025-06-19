@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 #include <strings.h>
 #include <wlr/util/log.h>
+#include "common/log.h"
 #include "common/parse-bool.h"
 
 enum three_state
@@ -26,7 +27,7 @@ parse_three_state(const char *str)
 		return LAB_STATE_DISABLED;
 	}
 error_not_a_boolean:
-	wlr_log(WLR_ERROR, "(%s) is not a boolean value", str);
+	nag_log(WLR_ERROR, "(%s) is not a boolean value", str);
 	return LAB_STATE_UNSPECIFIED;
 }
 

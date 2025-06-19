@@ -9,6 +9,7 @@
 #include "action.h"
 #include "common/macros.h"
 #include "common/list.h"
+#include "common/log.h"
 #include "common/mem.h"
 #include "common/parse-bool.h"
 #include "common/spawn.h"
@@ -345,7 +346,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 				|| action->type == ACTION_TYPE_SNAP_TO_EDGE;
 			if ((edge == VIEW_EDGE_CENTER && !allow_center)
 					|| edge == VIEW_EDGE_INVALID) {
-				wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
+				nag_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
 					action_names[action->type], argument, content);
 			} else {
 				action_arg_add_int(action, argument, edge);
@@ -377,7 +378,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 		if (!strcmp(argument, "direction")) {
 			enum view_axis axis = view_axis_parse(content);
 			if (axis == VIEW_AXIS_NONE || axis == VIEW_AXIS_INVALID) {
-				wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
+				nag_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
 					action_names[action->type], argument, content);
 			} else {
 				action_arg_add_int(action, argument, axis);
@@ -391,7 +392,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 			if (mode != LAB_SSD_MODE_INVALID) {
 				action_arg_add_int(action, argument, mode);
 			} else {
-				wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
+				nag_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
 					action_names[action->type], argument, content);
 			}
 			goto cleanup;
@@ -453,7 +454,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 		if (!strcmp(argument, "direction")) {
 			enum view_edge edge = view_edge_parse(content);
 			if (edge == VIEW_EDGE_CENTER) {
-				wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
+				nag_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
 					action_names[action->type], argument, content);
 			} else {
 				action_arg_add_int(action, argument, edge);
@@ -477,7 +478,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 			enum view_placement_policy policy =
 				view_placement_parse(content);
 			if (policy == LAB_PLACE_INVALID) {
-				wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
+				nag_log(WLR_ERROR, "Invalid argument for action %s: '%s' (%s)",
 						action_names[action->type], argument, content);
 			} else {
 				action_arg_add_int(action, argument, policy);
@@ -498,7 +499,7 @@ action_arg_from_xml_node(struct action *action, const char *nodename, const char
 		goto cleanup;
 	}
 
-	wlr_log(WLR_ERROR, "Invalid argument for action %s: '%s'",
+	nag_log(WLR_ERROR, "Invalid argument for action %s: '%s'",
 		action_names[action->type], argument);
 
 cleanup:
@@ -513,7 +514,7 @@ action_type_from_str(const char *action_name)
 			return i;
 		}
 	}
-	wlr_log(WLR_ERROR, "Invalid action: %s", action_name);
+	nag_log(WLR_ERROR, "Invalid action: %s", action_name);
 	return ACTION_TYPE_INVALID;
 }
 
@@ -521,7 +522,7 @@ struct action *
 action_create(const char *action_name)
 {
 	if (!action_name) {
-		wlr_log(WLR_ERROR, "action name not specified");
+		nag_log(WLR_ERROR, "action name not specified");
 		return NULL;
 	}
 
@@ -570,7 +571,7 @@ action_branches_are_valid(struct action *action)
 		struct wl_list *children =
 			action_get_actionlist(action, branches[i]);
 		if (children && !action_list_is_valid(children)) {
-			wlr_log(WLR_ERROR, "Invalid action in %s '%s' branch",
+			nag_log(WLR_ERROR, "Invalid action in %s '%s' branch",
 				action_names[action->type], branches[i]);
 			return false;
 		}
@@ -620,7 +621,7 @@ action_is_valid(struct action *action)
 		return true;
 	}
 
-	wlr_log(WLR_ERROR, "Missing required argument for %s: %s",
+	nag_log(WLR_ERROR, "Missing required argument for %s: %s",
 		action_names[action->type], arg_name);
 	return false;
 }
@@ -822,7 +823,7 @@ action_prompt_create(struct view *view, struct server *server, struct action *ac
 	int pipe_fd;
 	pid_t prompt_pid = spawn_pipe_reader(command, &pipe_fd);
 	if (prompt_pid < 0) {
-		wlr_log(WLR_ERROR, "Failed to create action prompt");
+		nag_log(WLR_ERROR, "Failed to create action prompt");
 		goto cleanup;
 	}
 	/* FIXME: closing stdout might confuse clients */
@@ -961,7 +962,7 @@ warp_cursor(struct view *view, struct output *output, const char *to, const char
 	} else if (!strcasecmp(to, "window") && view) {
 		target_area = view->current;
 	} else {
-		wlr_log(WLR_ERROR, "Invalid argument for action WarpCursor: 'to' (%s)", to);
+		nag_log(WLR_ERROR, "Invalid argument for action WarpCursor: 'to' (%s)", to);
 	}
 
 	if (!strcasecmp(x, "center")) {
@@ -991,7 +992,7 @@ actions_run(struct view *activator, struct server *server,
 	struct wl_list *actions, struct cursor_context *cursor_ctx)
 {
 	if (!actions) {
-		wlr_log(WLR_ERROR, "empty actions");
+		nag_log(WLR_ERROR, "empty actions");
 		return;
 	}
 
@@ -1034,7 +1035,7 @@ actions_run(struct view *activator, struct server *server,
 				assert(view->impl->get_pid);
 				pid_t pid = view->impl->get_pid(view);
 				if (pid == getpid()) {
-					wlr_log(WLR_ERROR, "Preventing sending SIGTERM to labwc");
+					nag_log(WLR_ERROR, "Preventing sending SIGTERM to labwc");
 				} else if (pid > 0) {
 					kill(pid, SIGTERM);
 				}
@@ -1257,7 +1258,7 @@ actions_run(struct view *activator, struct server *server,
 			}
 			break;
 		case ACTION_TYPE_MOVETO_CURSOR:
-			wlr_log(WLR_ERROR,
+			nag_log(WLR_ERROR,
 				"Action MoveToCursor is deprecated. To ensure your config works in future labwc "
 				"releases, please use <action name=\"AutoPlace\" policy=\"cursor\">");
 			if (view) {
@@ -1339,7 +1340,7 @@ actions_run(struct view *activator, struct server *server,
 				view_snap_to_region(view, region,
 					/*store_natural_geometry*/ true);
 			} else {
-				wlr_log(WLR_ERROR, "Invalid SnapToRegion id: '%s'", region_name);
+				nag_log(WLR_ERROR, "Invalid SnapToRegion id: '%s'", region_name);
 			}
 			break;
 		}
@@ -1425,7 +1426,7 @@ actions_run(struct view *activator, struct server *server,
 					view->force_tearing = LAB_STATE_DISABLED;
 					break;
 				}
-				wlr_log(WLR_ERROR, "force tearing %sabled",
+				nag_log(WLR_ERROR, "force tearing %sabled",
 					view->force_tearing == LAB_STATE_ENABLED
 						? "en" : "dis");
 			}
@@ -1486,7 +1487,7 @@ actions_run(struct view *activator, struct server *server,
 			cursor_set_visible(&server->seat, false);
 			break;
 		case ACTION_TYPE_INVALID:
-			wlr_log(WLR_ERROR, "Not executing unknown action");
+			nag_log(WLR_ERROR, "Not executing unknown action");
 			break;
 		default:
 			/*
@@ -1494,7 +1495,7 @@ actions_run(struct view *activator, struct server *server,
 			 * action_names and action_type being out of sync or by
 			 * adding a new action without installing a handler here.
 			 */
-			wlr_log(WLR_ERROR,
+			nag_log(WLR_ERROR,
 				"Not executing invalid action (%u)"
 				" This is a BUG. Please report.", action->type);
 		}
