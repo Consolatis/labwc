@@ -125,21 +125,25 @@ spawn_primary_client(const char *command)
 	}
 }
 
-pid_t
-spawn_pipe_reader(const char *command, int *pipe_fd)
+static inline void
+replace_fd(int target, int from, int alternative)
+{
+	if (from >= 0) {
+		dup2(from, target);
+	} else if (alternative >= 0) {
+		dup2(alternative, target);
+	} else {
+		close(target);
+	}
+}
+
+static pid_t
+spawn_pipe(const char *command, int stdin, int stdout, int stderr)
 {
 	assert(command);
 
-	int pipe_rw[2];
-	if (pipe(pipe_rw) != 0) {
-		wlr_log(WLR_ERROR, "unable to pipe()");
-		return -1;
-	}
-
 	pid_t pid = fork();
 	if (pid < 0) {
-		close(pipe_rw[0]);
-		close(pipe_rw[1]);
 		wlr_log(WLR_ERROR, "unable to fork()");
 		return pid;
 	}
@@ -148,46 +152,94 @@ spawn_pipe_reader(const char *command, int *pipe_fd)
 		/* child */
 		reset_signals_and_limits();
 
-		/*
-		 * replace stdin and stderr with /dev/null
-		 * and stdout with the write end of the pipe
-		 */
-		dup2(pipe_rw[1], STDOUT_FILENO);
-		close(pipe_rw[0]);
-		close(pipe_rw[1]);
-
 		int dev_null = open("/dev/null", O_RDWR);
-		if (dev_null < 0) {
-			wlr_log_errno(WLR_ERROR, "opening /dev/null failed");
-			/*
-			 * Just close stdin and stderr and
-			 * hope $command can deal with that.
-			 */
-			close(STDIN_FILENO);
-			close(STDERR_FILENO);
-		} else {
-			dup2(dev_null, STDIN_FILENO);
-			dup2(dev_null, STDERR_FILENO);
+		replace_fd(STDIN_FILENO, stdin, dev_null);
+		replace_fd(STDOUT_FILENO, stdout, dev_null);
+		replace_fd(STDERR_FILENO, stderr, dev_null);
+		/*
+		 * Technically we could end up closing the
+		 * same fd twice so we just ignore errors.
+		 */
+		if (dev_null >= 0) {
 			close(dev_null);
+		}
+		if (stdin >= 0) {
+			close(stdin);
+		}
+		if (stdout >= 0) {
+			close(stdout);
+		}
+		if (stderr >= 0) {
+			close(stderr);
 		}
 
 		execl("/bin/sh", "sh", "-c", command, NULL);
 		/*
-		 * Our stderr points to /dev/null or is closed
+		 * Our stderr points to somewhere or is closed
 		 * at this point so logging is pretty useless.
 		 */
 		_exit(1);
 	}
 
-	/* labwc */
-	close(pipe_rw[1]);
+	return pid;
+}
+
+pid_t
+spawn_pipe_reader(const char *command, int *pipe_fd)
+{
+	int pipe_rw[2];
+	if (pipe(pipe_rw) != 0) {
+		wlr_log(WLR_ERROR, "unable to pipe()");
+		return -1;
+	}
 
 	/*
-	 * Prevent leaking the read end of the pipe to further
-	 * children forked during the lifetime of the descriptor.
+	 * Prevent leaking the read end of the pipe to this and
+	 * further children forked during the lifetime of the descriptor.
 	 */
-	set_cloexec(pipe_rw[0]);
+	if (!set_cloexec(pipe_rw[0])) {
+		close(pipe_rw[0]);
+		close(pipe_rw[1]);
+		return -1;
+	}
 
-	*pipe_fd = pipe_rw[0];
-	return pid;
+	pid_t client = spawn_pipe(command, -1, pipe_rw[1], -1);
+	close(pipe_rw[1]);
+
+	if (client < 0) {
+		close(pipe_rw[0]);
+	} else {
+		*pipe_fd = pipe_rw[0];
+	}
+	return client;
+}
+
+pid_t
+spawn_pipe_writer(const char *command, int *pipe_fd)
+{
+	int pipe_rw[2];
+	if (pipe(pipe_rw) != 0) {
+		wlr_log(WLR_ERROR, "unable to pipe()");
+		return -1;
+	}
+
+	/*
+	 * Prevent leaking the write end of the pipe to this and
+	 * further children forked during the lifetime of the descriptor.
+	 */
+	if (!set_cloexec(pipe_rw[1])) {
+		close(pipe_rw[0]);
+		close(pipe_rw[1]);
+		return -1;
+	}
+
+	pid_t client = spawn_pipe(command, pipe_rw[0], -1, -1);
+	close(pipe_rw[0]);
+
+	if (client < 0) {
+		close(pipe_rw[1]);
+	} else {
+		*pipe_fd = pipe_rw[1];
+	}
+	return client;
 }
