@@ -36,6 +36,7 @@
 
 #include "drm-lease-v1-protocol.h"
 #include "action.h"
+#include "common/log.h"
 #include "common/macros.h"
 #include "common/scaled-scene-buffer.h"
 #include "config/rcxml.h"
@@ -89,6 +90,7 @@ reload_config_and_theme(struct server *server)
 	resize_indicator_reconfigure(server);
 	kde_server_decoration_update_default();
 	workspaces_reconfigure(server);
+	labnag_show();
 }
 
 static int
