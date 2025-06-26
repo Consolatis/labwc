@@ -125,16 +125,48 @@ spawn_primary_client(const char *command)
 	}
 }
 
+static inline bool
+replace_fd_single(int target, int from)
+{
+	if (from < 0) {
+		return false;
+	}
+	if (dup2(from, target) < 0) {
+		wlr_log_errno(WLR_ERROR, "Failed to replace fd %d with %d",
+			target, from);
+		return false;
+	}
+	return true;
+}
+
 static inline void
 replace_fd(int target, int from, int alternative)
 {
-	if (from >= 0) {
-		dup2(from, target);
-	} else if (alternative >= 0) {
-		dup2(alternative, target);
-	} else {
-		close(target);
+
+	if (replace_fd_single(target, from)) {
+		return;
 	}
+	if (replace_fd_single(target, alternative)) {
+		return;
+	}
+	close(target);
+}
+
+/* Recursively dup() the fd until it is > STDERR_FILENO */
+static int
+no_clash_fd(int fd)
+{
+	if (fd < 0 || fd > STDERR_FILENO) {
+		return fd;
+	}
+	int new_fd = dup(fd);
+	if (new_fd < 0) {
+		wlr_log_errno(WLR_ERROR, "Failed to dup() fd %d", fd);
+	} else {
+		new_fd = no_clash_fd(new_fd);
+	}
+	close(fd);
+	return new_fd;
 }
 
 static pid_t
@@ -151,25 +183,37 @@ spawn_pipe(const char *command, int stdin, int stdout, int stderr)
 	if (pid == 0) {
 		/* child */
 		reset_signals_and_limits();
-
 		int dev_null = open("/dev/null", O_RDWR);
+
+		/*
+		 * Ensure our incoming fds are > STDERR_FILENO.
+		 * Otherwise we could end up closing the original
+		 * STD{IN,OUT,ERR}_FILENO by accident due to the
+		 * dup2() in replace_fd() or the direct close()
+		 * calls below. This could for example be caused by
+		 * switching stdout and stderr.
+		 */
+		stdin = no_clash_fd(stdin);
+		stdout = no_clash_fd(stdout);
+		stderr = no_clash_fd(stderr);
+		dev_null = no_clash_fd(dev_null);
+
+		/* Replace standard fds with the argument fd or /dev/null */
 		replace_fd(STDIN_FILENO, stdin, dev_null);
 		replace_fd(STDOUT_FILENO, stdout, dev_null);
 		replace_fd(STDERR_FILENO, stderr, dev_null);
-		/*
-		 * Technically we could end up closing the
-		 * same fd twice so we just ignore errors.
-		 */
+
+		/* Close the remaining fds, ensure we are only closing them once */
 		if (dev_null >= 0) {
 			close(dev_null);
 		}
 		if (stdin >= 0) {
 			close(stdin);
 		}
-		if (stdout >= 0) {
+		if (stdout >= 0 && stdout != stdin) {
 			close(stdout);
 		}
-		if (stderr >= 0) {
+		if (stderr >= 0 && stderr != stdin && stderr != stdout) {
 			close(stderr);
 		}
 
