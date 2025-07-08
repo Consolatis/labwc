@@ -1292,6 +1292,10 @@ process_cursor_axis(struct server *server, enum wl_pointer_axis orientation,
 	enum direction direction = LAB_DIRECTION_INVALID;
 	struct scroll_info info = {0};
 
+	wlr_log(WLR_ERROR, "process_cursor_axis() with start scroll_offset %.6f, %.6f"
+		" and delta %.6f, delta discrete %.6f", server->seat.smooth_scroll_offset.x,
+		server->seat.smooth_scroll_offset.y, delta, delta_discrete);
+
 	if (orientation == WL_POINTER_AXIS_HORIZONTAL_SCROLL) {
 		info = compare_delta(delta, delta_discrete,
 			&server->seat.smooth_scroll_offset.x);
@@ -1313,6 +1317,12 @@ process_cursor_axis(struct server *server, enum wl_pointer_axis orientation,
 	} else {
 		wlr_log(WLR_DEBUG, "Failed to handle cursor axis event");
 	}
+
+	wlr_log(WLR_ERROR, "process_cursor_axis() end scroll_offset %.6f, %.6f,"
+		" delta %.6f, delta discrete %.6f which should run action: %s\n--------------",
+		server->seat.smooth_scroll_offset.x,
+		server->seat.smooth_scroll_offset.y, delta, delta_discrete,
+		info.run_action ? "yes" : "no");
 
 	bool handled = false;
 	if (direction != LAB_DIRECTION_INVALID) {
