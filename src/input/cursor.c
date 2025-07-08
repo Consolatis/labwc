@@ -1274,7 +1274,8 @@ compare_delta(double delta, double delta_discrete, double *accum)
 		*accum += delta;
 	}
 
-	if (delta_discrete != 0 || fabs(*accum) > SCROLL_THRESHOLD) {
+	//if (delta_discrete != 0 || fabs(*accum) > SCROLL_THRESHOLD) {
+	if (fabs(*accum) > SCROLL_THRESHOLD) {
 		*accum = fmod(*accum, SCROLL_THRESHOLD);
 		info.run_action = true;
 	}
