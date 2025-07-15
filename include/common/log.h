@@ -4,7 +4,10 @@
 
 #include <wlr/util/log.h>
 
-void labnag_show(void);
+struct wl_event_loop;
+
+void nag_log_init(struct wl_event_loop *wl_event_loop);
+
 void _nag_log(enum wlr_log_importance verbosity, const char *format, ...) _WLR_ATTRIB_PRINTF(2, 3);
 
 #if __STDC_VERSION__ >= 202311L

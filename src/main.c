@@ -7,6 +7,7 @@
 #include "common/dir.h"
 #include "common/fd-util.h"
 #include "common/font.h"
+#include "common/log.h"
 #include "common/mem.h"
 #include "common/spawn.h"
 #include "config/session.h"
@@ -147,6 +148,8 @@ idle_callback(void *data)
 	if (ctx->startup_cmd) {
 		spawn_async_no_shell(ctx->startup_cmd);
 	}
+
+	nag_log_init(ctx->server->wl_event_loop);
 }
 
 int
