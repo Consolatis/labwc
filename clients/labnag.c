@@ -1434,26 +1434,23 @@ nag_parse_options(int argc, char **argv, struct nag *nag,
 		}
 		switch (c) {
 		case 'B': /* Button */
-		case 'Z': /* Button (Dismiss) */
-			if (nag) {
-				struct button *button = calloc(1, sizeof(*button));
-				if (!button) {
-					perror("calloc");
-					return LAB_EXIT_FAILURE;
-				}
-				if (argv[optind] && argv[optind][0] != '-') {
-					button->action = argv[optind];
-					optind++;
-				}
-				button->text = optarg;
-				button->dismiss = c == 'Z';
-				wl_list_insert(nag->buttons.prev, &button->link);
+		case 'Z': /* Button (Dismiss) */ {
+			struct button *button = calloc(1, sizeof(*button));
+			if (!button) {
+				perror("calloc");
+				return LAB_EXIT_FAILURE;
 			}
+			if (argv[optind] && argv[optind][0] != '-') {
+				button->action = argv[optind];
+				optind++;
+			}
+			button->text = optarg;
+			button->dismiss = c == 'Z';
+			wl_list_insert(nag->buttons.prev, &button->link);
 			break;
+		}
 		case 'd': /* Debug */
-			if (debug) {
-				*debug = true;
-			}
+			*debug = true;
 			break;
 		case 'e': /* Edge */
 			if (strcmp(optarg, "top") == 0) {
@@ -1490,25 +1487,19 @@ nag_parse_options(int argc, char **argv, struct nag *nag,
 			conf->font_description = pango_font_description_from_string(optarg);
 			break;
 		case 'l': /* Detailed Message */
-			if (nag) {
-				free(nag->details.message);
-				nag->details.message = read_and_trim_stdin();
-				if (!nag->details.message) {
-					return LAB_EXIT_FAILURE;
-				}
-				nag->details.button_up.text = "▲";
-				nag->details.button_down.text = "▼";
+			free(nag->details.message);
+			nag->details.message = read_and_trim_stdin();
+			if (!nag->details.message) {
+				return LAB_EXIT_FAILURE;
 			}
+			nag->details.button_up.text = "▲";
+			nag->details.button_down.text = "▼";
 			break;
 		case 'L': /* Detailed Button Text */
-			if (nag) {
-				nag->details.details_text = optarg;
-			}
+			nag->details.details_text = optarg;
 			break;
 		case 'm': /* Message */
-			if (nag) {
-				nag->message = optarg;
-			}
+			nag->message = optarg;
 			break;
 		case 'o': /* Output */
 			free(conf->output);
