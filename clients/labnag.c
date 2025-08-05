@@ -1446,7 +1446,7 @@ nag_parse_options(int argc, char **argv, struct nag *nag,
 			}
 			button->text = optarg;
 			button->dismiss = c == 'Z';
-			wl_list_insert(nag->buttons.prev, &button->link);
+			wl_list_insert(&nag->buttons, &button->link);
 			break;
 		}
 		case 'd': /* Debug */
