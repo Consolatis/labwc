@@ -17,12 +17,12 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <strings.h>
+#include <sys/signalfd.h>
 #include <sys/stat.h>
 #include <sys/timerfd.h>
 #include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
-#include <signal.h>
 #include <wayland-client.h>
 #include <wayland-cursor.h>
 #include <wlr/util/log.h>
@@ -107,6 +107,14 @@ struct button {
 	struct wl_list link;
 };
 
+enum {
+	FD_WAYLAND,
+	FD_TIMER,
+	FD_SIGNAL,
+
+	NR_FDS,
+};
+
 struct nag {
 	bool run_display;
 
@@ -131,6 +139,7 @@ struct nag {
 	struct conf *conf;
 	char *message;
 	struct wl_list buttons;
+	struct pollfd pollfds[NR_FDS];
 
 	struct {
 		bool visible;
@@ -155,6 +164,8 @@ struct nag {
 };
 
 static int exit_status = LAB_EXIT_FAILURE;
+
+static void close_pollfd(struct pollfd *pollfd);
 
 static PangoLayout *
 get_pango_layout(cairo_t *cairo, const PangoFontDescription *desc,
@@ -628,6 +639,9 @@ nag_destroy(struct nag *nag)
 		wl_display_disconnect(nag->display);
 	}
 	pango_cairo_font_map_set_default(NULL);
+
+	close_pollfd(&nag->pollfds[FD_TIMER]);
+	close_pollfd(&nag->pollfds[FD_SIGNAL]);
 }
 
 static void
@@ -900,7 +914,9 @@ wl_pointer_axis(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32
 static void
 wl_pointer_frame(void *data, struct wl_pointer *wl_pointer)
 {
-	/* nop */
+	struct seat *seat = data;
+	/* pointer inputs clears timer for auto-closing */
+	close_pollfd(&seat->nag->pollfds[FD_TIMER]);
 }
 
 static void
@@ -1046,7 +1062,7 @@ handle_global(void *data, struct wl_registry *registry, uint32_t name, const cha
 		seat->nag = nag;
 		seat->wl_name = name;
 		seat->wl_seat =
-			wl_registry_bind(registry, name, &wl_seat_interface, 1);
+			wl_registry_bind(registry, name, &wl_seat_interface, 5);
 
 		wl_seat_add_listener(seat->wl_seat, &seat_listener, seat);
 
@@ -1168,6 +1184,39 @@ nag_setup(struct nag *nag)
 			nag->conf->anchors);
 
 	wl_registry_destroy(registry);
+
+	nag->pollfds[FD_WAYLAND].fd = wl_display_get_fd(nag->display);
+	nag->pollfds[FD_WAYLAND].events = POLLIN;
+
+	if (nag->details.close_timeout != 0) {
+		nag->pollfds[FD_TIMER].fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
+		nag->pollfds[FD_TIMER].events = POLLIN;
+		struct itimerspec timeout = {
+			.it_value.tv_sec = nag->details.close_timeout,
+		};
+		timerfd_settime(nag->pollfds[FD_TIMER].fd, 0, &timeout, NULL);
+	} else {
+		nag->pollfds[FD_TIMER].fd = -1;
+	}
+
+	sigset_t mask;
+	sigaddset(&mask, SIGINT);
+	sigaddset(&mask, SIGTERM);
+	sigprocmask(SIG_BLOCK, &mask, NULL);
+	nag->pollfds[FD_SIGNAL].fd = signalfd(-1, &mask, SFD_CLOEXEC | SFD_NONBLOCK);
+	nag->pollfds[FD_SIGNAL].events = POLLIN;
+}
+
+static void
+close_pollfd(struct pollfd *pollfd)
+{
+	if (pollfd->fd == -1) {
+		return;
+	}
+	close(pollfd->fd);
+	pollfd->fd = -1;
+	pollfd->events = 0;
+	pollfd->revents = 0;
 }
 
 static void
@@ -1175,23 +1224,6 @@ nag_run(struct nag *nag)
 {
 	nag->run_display = true;
 	render_frame(nag);
-	int timer_fd = -1;
-	if (nag->details.close_timeout != 0) {
-		timer_fd = timerfd_create(CLOCK_MONOTONIC, TFD_CLOEXEC);
-		struct itimerspec timeout = {
-			.it_value.tv_sec = nag->details.close_timeout,
-		};
-		timerfd_settime(timer_fd, 0, &timeout, NULL);
-	}
-	struct pollfd fds[] = {
-		{
-			.fd = wl_display_get_fd(nag->display),
-			.events = POLLIN,
-		}, {
-			.fd = timer_fd,
-			.events = POLLIN,
-		}
-	};
 	while (nag->run_display) {
 		while (wl_display_prepare_read(nag->display) != 0) {
 			wl_display_dispatch_pending(nag->display);
@@ -1202,22 +1234,21 @@ nag_run(struct nag *nag)
 			break;
 		}
 
-		poll(fds, 2, -1);
-		if (fds[0].revents & POLLIN) {
-			if (timer_fd >= 0 && nag->details.close_timeout_cancel) {
-				close(timer_fd);
-				timer_fd = -1;
-				fds[1].fd = -1;
-			}
+		if (!nag->run_display) {
+			break;
+		}
+
+		poll(nag->pollfds, NR_FDS, -1);
+		if (nag->pollfds[FD_WAYLAND].revents & POLLIN) {
 			wl_display_read_events(nag->display);
 		} else {
 			wl_display_cancel_read(nag->display);
 		}
-		if (timer_fd >= 0 && fds[1].revents & POLLIN) {
-			close(timer_fd);
-			timer_fd = -1;
-			fds[1].fd = -1;
-			nag->run_display = false;
+		if (nag->pollfds[FD_TIMER].revents & POLLIN) {
+			break;
+		}
+		if (nag->pollfds[FD_SIGNAL].revents & POLLIN) {
+			break;
 		}
 	}
 }
@@ -1570,15 +1601,6 @@ nag_parse_options(int argc, char **argv, struct nag *nag,
 	return LAB_EXIT_SUCCESS;
 }
 
-static struct nag *_nag;
-
-static void
-sig_handler(int signal)
-{
-	nag_destroy(_nag);
-	exit(LAB_EXIT_FAILURE);
-}
-
 int
 main(int argc, char **argv)
 {
@@ -1588,7 +1610,6 @@ main(int argc, char **argv)
 	struct nag nag = {
 		.conf = &conf,
 	};
-	_nag = &nag;
 
 	wl_list_init(&nag.buttons);
 	wl_list_init(&nag.outputs);
@@ -1635,9 +1656,6 @@ main(int argc, char **argv)
 	wl_list_for_each(button, &nag.buttons, link) {
 		wlr_log(WLR_DEBUG, "\t[%s] `%s`", button->text, button->action);
 	}
-
-	struct sigaction sa = { .sa_handler = sig_handler };
-	sigaction(SIGTERM, &sa, NULL);
 
 	nag_setup(&nag);
 
