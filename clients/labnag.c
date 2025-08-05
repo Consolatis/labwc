@@ -62,12 +62,6 @@ struct conf {
 
 struct nag;
 
-enum action_type {
-	LABNAG_ACTION_DISMISS,
-	LABNAG_ACTION_EXPAND,
-	LABNAG_ACTION_COMMAND,
-};
-
 struct pointer {
 	struct wl_pointer *pointer;
 	uint32_t serial;
@@ -97,12 +91,12 @@ struct output {
 
 struct button {
 	char *text;
-	enum action_type type;
 	char *action;
 	int x;
 	int y;
 	int width;
 	int height;
+	bool expand;
 	bool dismiss;
 	struct wl_list link;
 };
@@ -649,12 +643,15 @@ button_execute(struct nag *nag,
 		struct button *button)
 {
 	wlr_log(WLR_DEBUG, "Executing [%s]: %s", button->text, button->action);
-	if (button->type == LABNAG_ACTION_DISMISS) {
-		nag->run_display = false;
-	} else if (button->type == LABNAG_ACTION_EXPAND) {
+	if (button->expand) {
 		nag->details.visible = !nag->details.visible;
 		render_frame(nag);
-	} else {
+		return;
+	}
+	if (button->dismiss) {
+		nag->run_display = false;
+	}
+	if (button->action) {
 		pid_t pid = fork();
 		if (pid < 0) {
 			wlr_log_errno(WLR_DEBUG, "Failed to fork");
@@ -672,10 +669,6 @@ button_execute(struct nag *nag,
 				_exit(LAB_EXIT_FAILURE);
 			}
 			_exit(EXIT_SUCCESS);
-		}
-
-		if (button->dismiss) {
-			nag->run_display = false;
 		}
 
 		if (waitpid(pid, NULL, 0) < 0) {
@@ -1443,22 +1436,19 @@ nag_parse_options(int argc, char **argv, struct nag *nag,
 		case 'B': /* Button */
 		case 'Z': /* Button (Dismiss) */
 			if (nag) {
-				if (optind >= argc) {
-					fprintf(stderr, "Missing action for button %s\n", optarg);
-					return LAB_EXIT_FAILURE;
-				}
 				struct button *button = calloc(1, sizeof(*button));
 				if (!button) {
 					perror("calloc");
 					return LAB_EXIT_FAILURE;
 				}
+				if (argv[optind] && argv[optind][0] != '-') {
+					button->action = argv[optind];
+					optind++;
+				}
 				button->text = optarg;
-				button->type = LABNAG_ACTION_COMMAND;
-				button->action = argv[optind];
 				button->dismiss = c == 'Z';
 				wl_list_insert(nag->buttons.prev, &button->link);
 			}
-			optind++;
 			break;
 		case 'd': /* Debug */
 			if (debug) {
@@ -1640,7 +1630,7 @@ main(int argc, char **argv)
 		assert(nag.details.button_details);
 		nag.details.button_details->text = nag.details.details_text;
 		assert(nag.details.button_details->text);
-		nag.details.button_details->type = LABNAG_ACTION_EXPAND;
+		nag.details.button_details->expand = true;
 		wl_list_insert(nag.buttons.prev, &nag.details.button_details->link);
 	}
 
