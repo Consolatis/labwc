@@ -10,15 +10,17 @@ _labnag_ [options...]
 
 # OPTIONS
 
-*-B, --button* <text> <action>
-	Create a button with the text _text_ that executes _action_ when
-	pressed. Multiple buttons can be defined by providing the flag multiple
-	times.
+*-B, --button* <text> [<action>]
+	Create a button with the text _text_ that optionally executes _action_
+	when pressed. Multiple buttons can be defined by providing the flag
+	multiple times. Buttons will appear in the order they are provided from
+	lef to right.
 
-*-Z, --button-dismiss* <text> <action>
-	Create a button with the text _text_ that executes _action_ when
-	pressed, and dismisses labnag. Multiple buttons can be defined by
-	providing the flag multiple times.
+*-Z, --button-dismiss* <text> [<action>]
+	Create a button with the text _text_ that optionally executes _action_
+	when pressed, and dismisses labnag. Multiple buttons can be defined by
+	providing the flag multiple times. Buttons will appear in the order
+	they are provided from lef to right.
 
 *-d, --debug*
 	Enable debugging.
