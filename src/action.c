@@ -15,6 +15,7 @@
 #include "common/list.h"
 #include "common/mem.h"
 #include "common/parse-bool.h"
+#include "common/scene-helpers.h"
 #include "common/spawn.h"
 #include "common/string-helpers.h"
 #include "config/rcxml.h"
@@ -1087,6 +1088,39 @@ warp_cursor(struct server *server, struct view *view, const char *to, const char
 }
 
 static void
+debug_rect_extents(struct server *server)
+{
+	static struct foo {
+		struct wlr_scene_tree *tree;
+		struct wlr_scene_rect *one;
+		struct wlr_scene_rect *two;
+		struct wlr_scene_rect *extents;
+	} foo;
+	const float red[4] = { 0.5, 0, 0, 0.5 };
+	const float green[4] = { 0, 0.5, 0, 0.5 };
+	const float blue[4] = { 0, 0, 0.5, 0.5 };
+	if (!foo.tree) {
+		foo.extents = wlr_scene_rect_create(&server->scene->tree, 0, 0, blue);
+		foo.tree = wlr_scene_tree_create(&server->scene->tree);
+		foo.one = wlr_scene_rect_create(foo.tree, 100, 100, red);
+		foo.two = wlr_scene_rect_create(foo.tree, 80, 80, green);
+	}
+
+	/* Random changes */
+	wlr_scene_node_set_position(&foo.tree->node, foo.tree->node.x + 10, foo.tree->node.y + 10);
+	wlr_scene_node_set_position(&foo.two->node, foo.two->node.x + 10, foo.two->node.y);
+
+	/* Get extents */
+	struct wlr_box extents = lab_wlr_scene_get_bounding_box(&foo.tree->node);
+
+	/* Show extents */
+	wlr_log(WLR_INFO, "Tree size is %ux%u@%u,%u",
+		extents.width, extents.height, extents.x, extents.y);
+	wlr_scene_rect_set_size(foo.extents, extents.width, extents.height);
+	wlr_scene_node_set_position(&foo.extents->node, extents.x, extents.y);
+}
+
+static void
 run_action(struct view *view, struct server *server, struct action *action,
 	struct cursor_context *ctx)
 {
@@ -1109,6 +1143,7 @@ run_action(struct view *view, struct server *server, struct action *action,
 		}
 		break;
 	case ACTION_TYPE_DEBUG:
+		debug_rect_extents(server);
 		debug_dump_scene(server);
 		break;
 	case ACTION_TYPE_EXECUTE: {
