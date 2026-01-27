@@ -5,6 +5,7 @@
 #include <wlr/types/wlr_output.h>
 #include <wlr/types/wlr_scene.h>
 #include <wlr/util/log.h>
+#include <wlr/util/transform.h>
 #include "magnifier.h"
 #include "output.h"
 
@@ -133,4 +134,81 @@ lab_wlr_scene_output_commit(struct wlr_scene_output *scene_output,
 	}
 
 	return true;
+}
+
+static struct wlr_box
+_get_node_geometry(struct wlr_scene_node *node)
+{
+	struct wlr_box box = { .x = node->x, .y = node->y };
+	switch (node->type) {
+	case WLR_SCENE_NODE_RECT: {
+		struct wlr_scene_rect *rect = wlr_scene_rect_from_node(node);
+		box.width = rect->width;
+		box.height = rect->height;
+		break;
+	}
+	case WLR_SCENE_NODE_BUFFER: {
+		struct wlr_scene_buffer *buffer = wlr_scene_buffer_from_node(node);
+		if (buffer->dst_width > 0 && buffer->dst_height > 0) {
+			box.width = buffer->dst_width;
+			box.height = buffer->dst_height;
+		} else {
+			box.width = buffer->WLR_PRIVATE.buffer_width;
+			box.height = buffer->WLR_PRIVATE.buffer_height;
+			wlr_output_transform_coords(buffer->transform, &box.width, &box.height);
+		}
+		break;
+	}
+	default:
+		wlr_log(WLR_ERROR, "_get_node_geometry() called with unsupported node type %u", node->type);
+	}
+	return box;
+}
+
+static void
+_get_bounding_box(struct wlr_scene_node *node, pixman_region32_t *region, int x, int y)
+{
+	if (!node->enabled) {
+		return;
+	}
+
+	if (node->type == WLR_SCENE_NODE_TREE) {
+		struct wlr_scene_tree *tree = wlr_scene_tree_from_node(node);
+		struct wlr_scene_node *child;
+		wl_list_for_each(child, &tree->children, link) {
+			_get_bounding_box(child, region, x + node->x, y + node->y);
+		}
+		return;
+	}
+
+	struct wlr_box box = _get_node_geometry(node);
+	if (box.width && box.height) {
+		pixman_region32_union_rect(region, region,
+			x + box.x, y + box.y, box.width, box.height);
+	}
+}
+
+struct wlr_box
+lab_wlr_scene_get_bounding_box(struct wlr_scene_node *node)
+{
+	if (!node->enabled) {
+		return (struct wlr_box) {0};
+	}
+
+	if (node->type != WLR_SCENE_NODE_TREE) {
+		return _get_node_geometry(node);
+	}
+
+	pixman_region32_t region;
+	pixman_region32_init(&region);
+	_get_bounding_box(node, &region, 0, 0);
+	struct pixman_box32 *extents = pixman_region32_extents(&region);
+	struct wlr_box box = {
+		.x = extents->x1,
+		.y = extents->y1,
+		.width = extents->x2 - extents->x1,
+		.height = extents->y2 - extents->y1,
+	};
+	pixman_region32_fini(&region);
+	return box;
 }
