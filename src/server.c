@@ -62,6 +62,7 @@
 #include "output.h"
 #include "output-virtual.h"
 #include "regions.h"
+#include "render.h"
 #include "resize-indicator.h"
 #include "scaled-buffer/scaled-buffer.h"
 #include "session-lock.h"
@@ -555,6 +556,20 @@ server_init(void)
 
 	server.scene = wlr_scene_create();
 	die_if_null(server.scene);
+
+	const uint32_t pattern_width = 3;
+	const uint32_t thickness = 20;
+	const uint32_t width = 200;
+	const uint32_t height = 100;
+
+	uint32_t *pixels = xmalloc(pattern_width * sizeof(uint32_t));
+	pixels[0] = 0xffff0000u;
+	pixels[1] = 0xff00ff00u;
+	pixels[2] = 0xff0000ffu;
+	struct textured_rect *tex_rect = textured_rect_create_from_pixels(pixels, pattern_width);
+	struct wlr_scene_tree *tree = textured_rect_create_tree(&server.scene->tree, tex_rect, thickness, width, height);
+	textured_rect_destroy(tex_rect);
+	wlr_scene_node_set_position(&tree->node, 350, 150);
 
 	server.direct_scanout_enabled = server.scene->WLR_PRIVATE.direct_scanout;
 
