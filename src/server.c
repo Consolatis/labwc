@@ -419,7 +419,7 @@ handle_renderer_lost(struct wl_listener *listener, void *data)
 	wlr_allocator_destroy(old_allocator);
 	wlr_renderer_destroy(old_renderer);
 }
-
+#include "buffer.h"
 void
 server_init(void)
 {
@@ -557,20 +557,6 @@ server_init(void)
 	server.scene = wlr_scene_create();
 	die_if_null(server.scene);
 
-	const uint32_t pattern_width = 3;
-	const uint32_t thickness = 20;
-	const uint32_t width = 200;
-	const uint32_t height = 100;
-
-	uint32_t *pixels = xmalloc(pattern_width * sizeof(uint32_t));
-	pixels[0] = 0xffff0000u;
-	pixels[1] = 0xff00ff00u;
-	pixels[2] = 0xff0000ffu;
-	struct textured_rect *tex_rect = textured_rect_create_from_pixels(pixels, pattern_width);
-	struct wlr_scene_tree *tree = textured_rect_create_tree(&server.scene->tree, tex_rect, thickness, width, height);
-	textured_rect_destroy(tex_rect);
-	wlr_scene_node_set_position(&tree->node, 350, 150);
-
 	server.direct_scanout_enabled = server.scene->WLR_PRIVATE.direct_scanout;
 
 	/*
@@ -607,6 +593,78 @@ server_init(void)
 #endif
 	server.menu_tree = lab_wlr_scene_tree_create(&server.scene->tree);
 	server.cycle_preview_tree = lab_wlr_scene_tree_create(&server.scene->tree);
+
+#if 0
+	const uint32_t pattern_width = 4;
+	uint32_t *pixels = xmalloc(pattern_width * sizeof(uint32_t));
+	render_jl(pixels, 0xff444488, pattern_width);
+#elif 0
+	#if 1
+		const uint32_t pattern_width = 40;
+	#else
+		const uint32_t pattern_width = 4;
+	#endif
+	uint32_t *pixels = xmalloc(pattern_width * sizeof(uint32_t));
+	for (size_t i = 0; i < pattern_width / 4; i++) {
+		pixels[i] = 0xffff0000u;
+	}
+	for (size_t i = pattern_width / 4; i < pattern_width / 4 * 2; i++) {
+		pixels[i] = 0xff00ff00u;
+	}
+	for (size_t i = pattern_width / 4 * 2; i < pattern_width / 4 * 3; i++) {
+		pixels[i] = 0xff0000ffu;
+	}
+	for (size_t i = pattern_width / 4 * 3; i < pattern_width; i++) {
+		pixels[i] = 0xffff00ffu;
+	}
+#elif 0
+	const uint32_t pattern_width = 16;
+	uint32_t *pixels = xmalloc(pattern_width * sizeof(uint32_t));
+	for (size_t i = 0; i < pattern_width; i++) {
+		if (i < 4 || i > pattern_width - 4) {
+			pixels[i] = 0xffababab;
+		} else if (i == pattern_width / 2) {
+			pixels[i] = 0xff888888;
+		} else {
+			pixels[i] = 0xff444444;
+		}
+	}
+#endif
+
+	const uint32_t thickness = 8;
+	uint32_t width = 800;
+	uint32_t height = 600;
+
+	struct {
+		uint32_t width;
+		uint32_t bg_argb;
+		void (*render_func)(uint32_t pixels[], uint32_t bg_argb, uint32_t width);
+		uint32_t style;
+	} rects[] = {
+		{ 8, 0xff444488, render_jl, LAB_TEX_RECT_BUFFER_ROUND },
+		{ 8, 0xff884444, render_jl, LAB_TEX_RECT_BUFFER_SQUARE },
+		{ 8, 0xff448844, render_jl, LAB_TEX_RECT_BUFFER_ROUND_TOP },
+	};
+
+	struct textured_rect *rect;
+	struct textured_rect_buffer *rect_buffer;
+	for (size_t i = 0; i < ARRAY_SIZE(rects); i++) {
+		uint32_t *pixels = xmalloc(sizeof(*pixels) * rects[i].width);
+		rects[i].render_func(pixels, rects[i].bg_argb, rects[i].width);
+		rect_buffer = textured_rect_buffer_from_pixels(
+			pixels, rects[i].width, rects[i].style);
+
+		rect = textured_rect_create(server.cycle_preview_tree,
+			rect_buffer, thickness, width, height);
+		textured_rect_buffer_destroy(rect_buffer);
+
+		wlr_scene_node_set_position(&rect->tree->node,
+			(1280 - width) / 2,
+			(720 - height) / 2);
+
+		width -= thickness * 4;
+		height -= thickness * 4;
+	}
 
 	workspaces_init();
 
